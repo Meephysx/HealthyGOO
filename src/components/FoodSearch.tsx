@@ -32,7 +32,8 @@ const AISearch: React.FC<FoodSearchProps> = ({ onSelectFood }) => {
     setSearchResults([]);
 
     const prompt = `
-      Sebagai ahli nutrisi, berikan informasi nutrisi lengkap untuk makanan: '${searchQuery}'.
+      Sebagai ahli nutrisi, berikan informasi nutrisi lengkap untuk beberapa variasi makanan terkait: '${searchQuery}'.
+      Berikan minimal 5-10 variasi yang berbeda, seperti olahan, bagian tubuh, hidangan terkait, atau variasi umum dari makanan tersebut.
       
       Instruksi Output:
       1. Berikan output HANYA dalam format JSON Array.
@@ -48,7 +49,8 @@ const AISearch: React.FC<FoodSearchProps> = ({ onSelectFood }) => {
           "carbs": 0,
           "fat": 0,
           "servingSize": "ukuran porsi"
-        }
+        },
+        ...
       ]
     `;
 
