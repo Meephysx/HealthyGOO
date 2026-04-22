@@ -1,7 +1,8 @@
 const admin = require("firebase-admin");
 require("dotenv").config();
 
-const serviceAccount = require("./serviceAccountKey.json");
+// 🔥 Ambil dari ENV, bukan file
+const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
 
 if (!admin.apps.length) {
   admin.initializeApp({
