@@ -1,5 +1,6 @@
 // backend/routes/aiRoutes.js
 // VERSION: ULTIMATE STABLE (Groq + Llama3 + Dual Parsers + Offline Fallback)
+console.log("GROQ KEY:", process.env.GROQ_API_KEY ? "ADA" : "KOSONG");
 
 const express = require('express');
 const router = express.Router();
