@@ -25,7 +25,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/api/users', userRoutes);
+//app.use('/api/users', userRoutes);
 app.use('/api/ai-chat', aiRoutes);
 console.log('[backend] Mounted aiRoutes at /api/ai-chat');
 console.log('[backend] GROQ_API_KEY configured:', !!process.env.GROQ_API_KEY);
