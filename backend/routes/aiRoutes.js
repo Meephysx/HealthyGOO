@@ -325,6 +325,9 @@ async function aiHandler(req, res) {
 // Routes
 router.get('/', (req, res) => res.json({ status: 'AI Service Ready', model: DEFAULT_MODEL }));
 router.post('/', aiHandler);
+router.post('/test', (req, res) => {
+  res.json({ msg: "API hidup bro" });
+});
 
 module.exports = router;
 module.exports.handler = aiHandler;

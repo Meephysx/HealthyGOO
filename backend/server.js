@@ -12,7 +12,7 @@ process.on('unhandledRejection', (reason, p) => {
 // NOTE: This file is a local development server using Express. In Vercel/production, prefer the serverless handler at `/api/ai-chat.js` (no Express required).
 const express = require('express');
 const cors = require('cors');
-const userRoutes = require('./routes/userRoutes');
+//const userRoutes = require('./routes/userRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 
 const app = express();
