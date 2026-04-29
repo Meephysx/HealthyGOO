@@ -12,6 +12,7 @@ import {
   Heart,
   Zap
 } from 'lucide-react';
+import { getRankFromXP } from '../context/DailyLogContext';
 import { getBMICategory, calculateMacroTargets } from '../utils/calculations';
 import type { User } from '../types';
 import { useDailyLog } from '../context/DailyLogContext';
@@ -39,6 +40,21 @@ const Dashboard: React.FC = () => {
   const macroTargets = calculateMacroTargets(user.dailyCalories, user.goal);
   const caloriesRemaining = user.dailyCalories - consumedCalories + burnedCalories;
   const caloriePercentage = Math.min(100, (consumedCalories / user.dailyCalories) * 100);
+
+  // Rank Logic
+  const xp = userProfile?.xp || 0;
+  const rank = getRankFromXP(xp);
+  const rankThresholds = [
+    { name: 'bronze', min: 0, max: 500 },
+    { name: 'silver', min: 500, max: 1500 },
+    { name: 'gold', min: 1500, max: 3000 },
+    { name: 'platinum', min: 3000, max: 6000 },
+    { name: 'Shadow Monarch', min: 6000, max: 100000 }
+  ];
+  const currentThreshold = rankThresholds.find(t => t.name === rank) || rankThresholds[0];
+  const xpInLevel = xp - currentThreshold.min;
+  const xpNeeded = currentThreshold.max - currentThreshold.min;
+  const xpPercentage = Math.min(100, (xpInLevel / xpNeeded) * 100);
 
   const motivationalQuotes = [
     "Fuel your body, fuel your mind. Keep going! 💪",
@@ -103,6 +119,30 @@ const Dashboard: React.FC = () => {
               <div className="inline-flex items-center space-x-2 px-4 py-2 bg-emerald-50 rounded-full">
                 <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
                 <span className="text-sm font-medium text-emerald-700">On Track</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Rank & XP Progress */}
+        <div className="mb-8 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl shadow-lg shadow-orange-100">
+                <Award className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 capitalize">{rank} Rank</h3>
+                <p className="text-sm text-gray-500 font-medium">{xp} Total XP earned</p>
+              </div>
+            </div>
+            <div className="flex-1 max-w-md w-full">
+              <div className="flex justify-between mb-2">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Next Rank Progress</span>
+                <span className="text-xs font-bold text-orange-600">{Math.round(xpPercentage)}%</span>
+              </div>
+              <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-orange-400 to-yellow-400 transition-all duration-1000" style={{ width: `${xpPercentage}%` }}></div>
               </div>
             </div>
           </div>

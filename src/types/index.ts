@@ -16,6 +16,8 @@ export interface User {
   idealWeight: number;
   dailyCalories: number;
   createdAt: Date;
+  xp?: number;
+  rank?: string;
 }
 
 export interface Food {

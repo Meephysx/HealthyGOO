@@ -158,11 +158,21 @@ const AIWorkoutPlan: React.FC = () => {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [workoutLocation, setWorkoutLocation] = useState<'home' | 'gym'>('home');
+  const [selectedSplit, setSelectedSplit] = useState<string>('Full Body');
   const [exerciseInput, setExerciseInput] = useState('');
   const [repsInput, setRepsInput] = useState('');
   const [user, setUser] = useState<User>(() => loadUserData());
 
-  const { workoutLog, generateAIWorkoutPlan, isGeneratingAI, aiError, addExercise, toggleExerciseCompleted, removeExercise } = useDailyLog();
+  const { 
+    workoutLog, 
+    generateAIWorkoutPlan, 
+    isGeneratingAI, 
+    aiError, 
+    addExercise, 
+    toggleExerciseCompleted, 
+    removeExercise,
+    burnedCalories // Ambil langsung dari context
+  } = useDailyLog();
 
   useEffect(() => {
     setUser(loadUserData());
@@ -205,16 +215,19 @@ const AIWorkoutPlan: React.FC = () => {
           name: ex.name,
           sets: ex.sets,
           reps: 1,
-          caloriesBurned: ex.caloriesBurned || 0,
-          caloriesPerRep: ex.caloriesPerSet || 0
+          caloriesBurned: ex.caloriesBurned || ex.caloriesPerSet || 0, // Tambahkan fallback ke caloriesPerSet
+          caloriesPerRep: ex.caloriesPerSet || 3
         }));
       
       setCompleted(completedExercises);
       return;
     }
-    setWorkoutPlan(null);
-    setCompleted([]);
-  }, [workoutLog, workoutLocation]);
+    // Only reset if workoutLog is null and we are not in the middle of generating
+    if (!workoutLog) {
+      setWorkoutPlan(null);
+      setCompleted([]);
+    }
+  }, [workoutLog]); // REMOVED workoutLocation to prevent reset on toggle
 
   useEffect(() => {
     if (!workoutPlan || !Array.isArray(workoutPlan.exercises)) {
@@ -222,9 +235,8 @@ const AIWorkoutPlan: React.FC = () => {
       return;
     }
     const total = workoutPlan.exercises.reduce((sum, ex) => sum + calculateExerciseCalories(ex), 0);
-    const burned = completed.reduce((sum, ex) => sum + ex.caloriesBurned, 0);
-    setProgress(total > 0 ? Math.min(100, Math.round((burned / total) * 100)) : 0);
-  }, [completed, workoutPlan]);
+    setProgress(total > 0 ? Math.min(100, Math.round((burnedCalories / total) * 100)) : 0);
+  }, [burnedCalories, workoutPlan]); // Gunakan burnedCalories dari context
 
   const handleCompleteExercise = async (exercise: Exercise) => {
     if (!exercise.id) {
@@ -236,13 +248,19 @@ const AIWorkoutPlan: React.FC = () => {
 
   const handleAddExercise = (exerciseName: string, reps: number) => {
     if (!exerciseName.trim() || !reps) return;
-    const caloriesPerRep = getCaloriesPerRep(exerciseName);
-    const caloriesBurned = Math.round(caloriesPerRep * reps * (user.weight / 70));
-    setCompleted([...completed, {
-      id: `ex-${Date.now()}`, name: exerciseName, sets: `${reps}x1`, reps, caloriesBurned, caloriesPerRep
-    }]);
-    setExerciseInput('');
-    setRepsInput('');
+    
+    // Perbaikan: Sebaiknya panggil addExercise dari context agar tersimpan di Firestore
+    const baseCals = getCaloriesPerRep(exerciseName);
+    const weightAdjustment = user.weight / 70;
+    
+    addExercise({
+      name: exerciseName,
+      sets: `1x${reps}`,
+      caloriesPerSet: Math.round(baseCals * reps * weightAdjustment)
+    }).then(() => {
+      setExerciseInput('');
+      setRepsInput('');
+    });
   };
 
   const handleRemoveExercise = (index: number) => {
@@ -252,11 +270,14 @@ const AIWorkoutPlan: React.FC = () => {
   const handleLocationChange = (newLocation: 'home' | 'gym') => {
     if (newLocation === workoutLocation && workoutPlan) return;
     setWorkoutLocation(newLocation);
+  };
+
+  const handleGeneratePlan = () => {
     setIsGenerating(true);
-    generateAIWorkoutPlan(newLocation).finally(() => setIsGenerating(false));
+    generateAIWorkoutPlan(workoutLocation, selectedSplit).finally(() => setIsGenerating(false));
   };
   
-  const burnedCalories = completed.reduce((sum, ex) => sum + ex.caloriesBurned, 0);
+  // Hapus baris ini karena kita sudah mengambil burnedCalories dari useDailyLog()
   const totalCalories = workoutPlan && Array.isArray(workoutPlan.exercises) ? workoutPlan.exercises.reduce((sum, ex) => sum + calculateExerciseCalories(ex), 0) : 0;
 
   return (
@@ -264,15 +285,40 @@ const AIWorkoutPlan: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* --- HEADER --- */}
         <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
-          <div className="text-center md:text-left"><h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3 justify-center md:justify-start"><span className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-200"><Dumbbell className="w-6 h-6" /></span>Workout Plan</h1><p className="text-gray-500 mt-1 text-sm font-medium">Personalized for your goals & body type</p></div>
-          <div className="flex items-center gap-4 bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200">
-            <button onClick={() => handleLocationChange('home')} className={`flex items-center px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${workoutLocation === 'home' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}><Home className="w-4 h-4 mr-2" />Home</button>
-            <button onClick={() => handleLocationChange('gym')} className={`flex items-center px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${workoutLocation === 'gym' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}><Building2 className="w-4 h-4 mr-2" />Gym</button>
+          <div className="space-y-4 w-full md:w-auto">
+            <div className="text-center md:text-left">
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3 justify-center md:justify-start">
+                <span className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-200"><Dumbbell className="w-6 h-6" /></span>Workout Plan
+              </h1>
+              <p className="text-gray-500 mt-1 text-sm font-medium">Personalized for your goals & body type</p>
+            </div>
+            
+            <div className="flex flex-wrap gap-4 justify-center md:justify-start items-center">
+              {/* Lokasi Selector */}
+              <div className="flex bg-white p-1 rounded-xl border border-gray-200 shadow-sm">
+                <button onClick={() => handleLocationChange('home')} className={`flex items-center px-4 py-2 rounded-lg text-xs font-bold transition-all ${workoutLocation === 'home' ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
+                  <Home size={14} className="mr-1.5" /> Home
+                </button>
+                <button onClick={() => handleLocationChange('gym')} className={`flex items-center px-4 py-2 rounded-lg text-xs font-bold transition-all ${workoutLocation === 'gym' ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
+                  <Building2 size={14} className="mr-1.5" /> Gym
+                </button>
+              </div>
+
+              {/* Split Selector */}
+              <div className="flex gap-1.5">
+                {['Push', 'Pull', 'Legs', 'Full Body'].map((split) => (
+                  <button key={split} onClick={() => setSelectedSplit(split)} className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${selectedSplit === split ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}>{split}</button>
+                ))}
+              </div>
+            </div>
           </div>
-          <button onClick={() => generateAIWorkoutPlan(workoutLocation)} disabled={isGenerating} className="flex items-center px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold shadow-lg shadow-blue-200 hover:shadow-blue-300 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
-            {isGenerating ? <Loader className="w-5 h-5 mr-2 animate-spin" /> : <RefreshCw className="w-5 h-5 mr-2" />}
-            {isGenerating ? "Generating..." : "New Plan"}
-          </button>
+
+          <div className="w-full md:w-auto">
+            <button onClick={handleGeneratePlan} disabled={isGenerating} className="w-full flex items-center justify-center px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold shadow-lg shadow-blue-200 hover:shadow-blue-300 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+              {isGenerating ? <Loader className="w-5 h-5 mr-2 animate-spin" /> : <RefreshCw className="w-5 h-5 mr-2" />}
+              {isGenerating ? "Generating..." : "New Plan"}
+            </button>
+          </div>
         </div>
 
         {error && <div className="bg-red-50 text-red-600 p-4 rounded-2xl mb-6 text-sm border border-red-100 flex items-center gap-3"><Info className="w-5 h-5 shrink-0" />{error}</div>}

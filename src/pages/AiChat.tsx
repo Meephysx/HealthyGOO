@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, Loader2, Check, Utensils, Dumbbell } from "lucide-react";
 import { auth } from "../firebase";
 import {
   getOrCreateChatSession,
@@ -8,19 +8,23 @@ import {
   addChatMessage,
   getUserProfile,
 } from "../services/firestore";
-import { sendMessage } from "../services/groqService";
+import { sendMessage, AIResponse, StructuredMealPlan, StructuredWorkoutPlan } from "../services/groqService";
 import { DocumentReference } from "firebase/firestore";
+import { useDailyLog } from "../context/DailyLogContext";
 
 type Message = {
   id: string;
   sender: "user" | "ai";
   text: string;
   timestamp?: any;
+  mealPlan?: StructuredMealPlan;
+  workoutPlan?: StructuredWorkoutPlan;
 };
 
 const AiChat = () => {
   const navigate = useNavigate();
   const user = auth.currentUser;
+  const { addFoodItem, addExercise } = useDailyLog();
 
   const [chatSession, setChatSession] = useState<DocumentReference | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -66,6 +70,56 @@ const AiChat = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Handle adding meal to log
+  const handleAcceptMeal = async (mealPlan: StructuredMealPlan) => {
+    if (!user) return;
+    
+    try {
+      const mealTypes = ['Sarapan', 'MakanSiang', 'MakanMalam', 'snacks'] as const;
+      
+      for (const type of mealTypes) {
+        const meal = mealPlan[type];
+        if (meal && meal.menu && meal.menu !== '-') {
+          await addFoodItem({
+            name: meal.menu,
+            calories: meal.calories,
+            protein: meal.protein,
+            carbs: meal.carbs,
+            fat: meal.fat,
+            servingSize: meal.portions || '1 porsi',
+          }, type);
+        }
+      }
+      
+      // Show success feedback
+      alert("Meal plan berhasil ditambahkan ke log makanan!");
+    } catch (error) {
+      console.error("Error adding meal plan:", error);
+      alert("Gagal menambahkan meal plan. Silakan coba lagi.");
+    }
+  };
+
+  // Handle adding workout to log
+  const handleAcceptWorkout = async (workoutPlan: StructuredWorkoutPlan) => {
+    if (!user || !workoutPlan.exercises) return;
+    
+    try {
+      for (const exercise of workoutPlan.exercises) {
+        await addExercise({
+          name: exercise.name,
+          sets: exercise.sets,
+          caloriesPerSet: exercise.caloriesPerSet,
+        });
+      }
+      
+      // Show success feedback
+      alert("Workout plan berhasil ditambahkan ke log latihan!");
+    } catch (error) {
+      console.error("Error adding workout plan:", error);
+      alert("Gagal menambahkan workout plan. Silakan coba lagi.");
+    }
+  };
+
   const handleSend = async () => {
     if (input.trim() === "" || !chatSession || !user) return;
 
@@ -81,8 +135,14 @@ const AiChat = () => {
 
     try {
       // Get AI response using the updated message list and user profile
-      const aiResponseText = await sendMessage(messagesForApi, userProfile);
-      const aiMessage = { sender: "ai" as const, text: aiResponseText };
+      const aiResponse: AIResponse = await sendMessage(messagesForApi, userProfile);
+      
+      const aiMessage = { 
+        sender: "ai" as const, 
+        text: aiResponse.reply,
+        mealPlan: aiResponse.structured_meal_plan,
+        workoutPlan: aiResponse.structured_workout_plan,
+      };
 
       // Add AI message to Firestore
       await addChatMessage(chatSession.id, aiMessage);
@@ -97,6 +157,100 @@ const AiChat = () => {
       setIsLoading(false);
     }
   };
+
+  // Render meal plan card
+  const renderMealPlanCard = (mealPlan: StructuredMealPlan) => (
+    <div className="mt-4 bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+      <div className="bg-green-500 px-4 py-2 flex items-center">
+        <Utensils className="w-5 h-5 text-white mr-2" />
+        <span className="text-white font-semibold">Rencana Makan</span>
+      </div>
+      <div className="p-4 space-y-3">
+        {mealPlan.Sarapan && mealPlan.Sarapan.menu !== '-' && (
+          <div className="flex justify-between items-center border-b pb-2">
+            <div>
+              <p className="font-medium text-gray-800">🌅 Sarapan</p>
+              <p className="text-sm text-gray-600">{mealPlan.Sarapan.menu}</p>
+              <p className="text-xs text-gray-500">{mealPlan.Sarapan.calories} kcal</p>
+            </div>
+          </div>
+        )}
+        {mealPlan.MakanSiang && mealPlan.MakanSiang.menu !== '-' && (
+          <div className="flex justify-between items-center border-b pb-2">
+            <div>
+              <p className="font-medium text-gray-800">🌞 Makan Siang</p>
+              <p className="text-sm text-gray-600">{mealPlan.MakanSiang.menu}</p>
+              <p className="text-xs text-gray-500">{mealPlan.MakanSiang.calories} kcal</p>
+            </div>
+          </div>
+        )}
+        {mealPlan.MakanMalam && mealPlan.MakanMalam.menu !== '-' && (
+          <div className="flex justify-between items-center border-b pb-2">
+            <div>
+              <p className="font-medium text-gray-800">🌙 Makan Malam</p>
+              <p className="text-sm text-gray-600">{mealPlan.MakanMalam.menu}</p>
+              <p className="text-xs text-gray-500">{mealPlan.MakanMalam.calories} kcal</p>
+            </div>
+          </div>
+        )}
+        {mealPlan.snacks && mealPlan.snacks.menu !== '-' && (
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="font-medium text-gray-800">🍎 Snack</p>
+              <p className="text-sm text-gray-600">{mealPlan.snacks.menu}</p>
+              <p className="text-xs text-gray-500">{mealPlan.snacks.calories} kcal</p>
+            </div>
+          </div>
+        )}
+        {mealPlan.totalCalories && (
+          <div className="mt-3 pt-2 border-t">
+            <p className="text-sm font-bold text-green-600">Total: {mealPlan.totalCalories} kcal</p>
+          </div>
+        )}
+        <button
+          onClick={() => handleAcceptMeal(mealPlan)}
+          className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+        >
+          <Check className="w-4 h-4" />
+          Tambahkan ke Meal Log
+        </button>
+      </div>
+    </div>
+  );
+
+  // Render workout plan card
+  const renderWorkoutPlanCard = (workoutPlan: StructuredWorkoutPlan) => (
+    <div className="mt-4 bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+      <div className="bg-blue-500 px-4 py-2 flex items-center">
+        <Dumbbell className="w-5 h-5 text-white mr-2" />
+        <span className="text-white font-semibold">Rencana Latihan</span>
+      </div>
+      <div className="p-4 space-y-3">
+        {workoutPlan.focus && (
+          <div className="flex justify-between items-center border-b pb-2">
+            <span className="text-sm text-gray-600">Fokus: {workoutPlan.focus}</span>
+            <span className="text-sm text-gray-600">{workoutPlan.duration}</span>
+          </div>
+        )}
+        {workoutPlan.exercises?.map((exercise, index) => (
+          <div key={index} className="flex justify-between items-center border-b pb-2 last:border-0">
+            <div>
+              <p className="font-medium text-gray-800">{exercise.name}</p>
+              <p className="text-xs text-gray-500">{exercise.sets}</p>
+            </div>
+            <span className="text-xs text-blue-500">~{exercise.caloriesPerSet} kcal/set</span>
+          </div>
+        ))}
+        <button
+          onClick={() => handleAcceptWorkout(workoutPlan)}
+          className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          <Check className="w-4 h-4" />
+          Tambahkan ke Workout Log
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -123,6 +277,12 @@ const AiChat = () => {
               }`}
             >
               <p className="whitespace-pre-wrap">{msg.text}</p>
+              
+              {/* Render meal plan if available */}
+              {msg.sender === "ai" && msg.mealPlan && renderMealPlanCard(msg.mealPlan)}
+              
+              {/* Render workout plan if available */}
+              {msg.sender === "ai" && msg.workoutPlan && renderWorkoutPlanCard(msg.workoutPlan)}
             </div>
           </div>
         ))}

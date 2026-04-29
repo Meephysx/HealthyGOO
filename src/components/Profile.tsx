@@ -18,9 +18,19 @@ import {
   Activity,
   ChevronRight,
   X,
-  Loader2
+  Loader2,
+  Award,
+  Star,
+  Trophy,
+  Medal,
+  Crown,
+  Sparkles,
+  Lock,
+  Zap,
+  ArrowUp
 } from 'lucide-react';
 import { calculateBMI, calculateIdealWeight, calculateDailyCalories, getBMICategory } from '../utils/calculations';
+import { getRankFromXP } from '../context/DailyLogContext';
 import { ACTIVITY_LEVELS, DIETARY_RESTRICTIONS, COMMON_ALLERGIES } from '../utils/constants';
 import type { User as UserType } from '../types';
 import { auth, db, storage } from '../firebase';
@@ -276,6 +286,73 @@ const Profile: React.FC = () => {
       return `bg-${colorBase.split('-')[0]}-100`; 
     }
     return colorString;
+  };
+
+  // --- XP & RANK SYSTEM HELPERS ---
+  const RANK_DATA = [
+    { id: 'bronze', name: 'Bronze', minXP: 0, maxXP: 499, icon: <Medal size={24} className="text-amber-700" />, bgColor: 'bg-amber-900/30', rewards: 'Basic Features', gradient: 'from-amber-700 to-amber-900' },
+    { id: 'silver', name: 'Silver', minXP: 500, maxXP: 1499, icon: <Medal size={24} className="text-gray-300" />, bgColor: 'bg-gray-400/30', rewards: 'Priority Support', gradient: 'from-gray-400 to-gray-600' },
+    { id: 'gold', name: 'Gold', minXP: 1500, maxXP: 2999, icon: <Trophy size={24} className="text-yellow-500" />, bgColor: 'bg-yellow-500/30', rewards: 'AI Recommendations', gradient: 'from-yellow-400 to-yellow-600' },
+    { id: 'platinum', name: 'Platinum', minXP: 3000, maxXP: 5999, icon: <Award size={24} className="text-cyan-400" />, bgColor: 'bg-cyan-400/30', rewards: 'Advanced Analytics', gradient: 'from-cyan-400 to-cyan-600' },
+    { id: 'Shadow Monarch', name: 'Shadow Monarch', minXP: 6000, maxXP: 99999, icon: <Crown size={24} className="text-purple-400" />, bgColor: 'bg-purple-500/30', rewards: 'VIP Access', gradient: 'from-purple-400 to-purple-600' },
+  ];
+
+  const getRankIcon = (rank: string) => {
+    const rankData = RANK_DATA.find(r => r.id === rank);
+    if (!rankData) return <Medal size={28} className="text-amber-700" />;
+    return rankData.icon;
+  };
+
+  const getNextRank = (currentXP: number): string => {
+    for (const rank of RANK_DATA) {
+      if (currentXP < rank.maxXP) {
+        return rank.name;
+      }
+    }
+    return 'Max Level!';
+  };
+
+  const getXPForNextRank = (currentXP: number): number => {
+    for (const rank of RANK_DATA) {
+      if (currentXP < rank.maxXP) {
+        return rank.maxXP + 1;
+      }
+    }
+    return currentXP;
+  };
+
+  const getXPProgress = (currentXP: number): number => {
+    for (let i = 0; i < RANK_DATA.length; i++) {
+      const rank = RANK_DATA[i];
+      if (currentXP <= rank.maxXP) {
+        if (i === 0) {
+          return (currentXP / rank.maxXP) * 100;
+        }
+        const prevRank = RANK_DATA[i - 1];
+        const progressInTier = currentXP - prevRank.maxXP;
+        const tierRange = rank.maxXP - prevRank.maxXP;
+        return (progressInTier / tierRange) * 100;
+      }
+    }
+    return 100;
+  };
+
+  const isRankUnlocked = (rankId: string, currentXP: number): boolean => {
+    const rank = RANK_DATA.find(r => r.id === rankId);
+    if (!rank) return false;
+    return currentXP >= rank.minXP;
+  };
+
+  const getRankAnimation = (rankId: string, isCurrent: boolean) => {
+    if (!isCurrent) return '';
+    switch (rankId) {
+      case 'bronze': return 'ring-1 ring-amber-700/30 shadow-[0_0_10px_rgba(180,83,9,0.1)]';
+      case 'silver': return 'ring-1 ring-gray-400/40 shadow-[0_0_12px_rgba(156,163,175,0.2)]';
+      case 'gold': return 'ring-2 ring-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.4)] animate-pulse';
+      case 'platinum': return 'ring-2 ring-cyan-400/60 shadow-[0_0_20px_rgba(34,211,238,0.5)] animate-pulse scale-105';
+      case 'Shadow Monarch': return 'shadow-monarch brutal';
+      default: return '';
+    }
   };
 
   // --- RENDER STATES ---
@@ -728,6 +805,127 @@ const Profile: React.FC = () => {
               </div>
             </div>
 
+            {/* XP & Rank Widget */}
+            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+              {/* Background Decorations */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-teal-500/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-500/20 rounded-lg">
+                      <Sparkles className="h-5 w-5 text-emerald-400" />
+                    </div>
+                    <h3 className="text-lg font-bold">XP & Rank</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getRankIcon(user.rank || 'bronze')}
+                  </div>
+                </div>
+
+                {/* Current Rank Display */}
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-slate-400 text-xs">Current Rank</p>
+                    <p className="text-2xl font-bold capitalize flex items-center gap-2">
+                      {getRankFromXP(user.xp || 0)}
+                      {getRankFromXP(user.xp || 0) === 'Shadow Monarch' && (
+                        <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                      )}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-slate-400 text-xs">Total XP</p>
+                    <p className="text-3xl font-bold text-emerald-400">{user.xp || 0}</p>
+                  </div>
+                </div>
+
+                {/* XP Progress Bar */}
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs text-slate-400">Progress to {getNextRank(user.xp || 0)}</span>
+                    <span className="text-xs font-semibold text-emerald-400">{Math.round(getXPProgress(user.xp || 0))}%</span>
+                  </div>
+                  <div className="h-2 bg-slate-700/50 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 rounded-full transition-all duration-1000"
+                      style={{ width: `${getXPProgress(user.xp || 0)}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between mt-1 text-[10px] text-slate-500">
+                    <span>{user.xp || 0} XP</span>
+                    <span>{getXPForNextRank(user.xp || 0)} XP</span>
+                  </div>
+                </div>
+
+                {/* Rank Badges */}
+                <div className="grid grid-cols-5 gap-2">
+                  {RANK_DATA.map((rank) => {
+                    const isUnlocked = isRankUnlocked(rank.id, user.xp || 0);
+                    const isCurrent = rank.id === getRankFromXP(user.xp || 0);
+                    
+                    return (
+                      <div 
+                        key={rank.id}
+                        className={`relative p-2 rounded-xl overflow-hidden text-center transition-all duration-300 ${
+                          isCurrent 
+                            ? `bg-gradient-to-b from-emerald-500/30 to-transparent border border-emerald-400/50 ${getRankAnimation(rank.id, true)}` 
+                            : isUnlocked 
+                              ? 'bg-slate-800/50 border border-slate-700' 
+                              : 'bg-slate-800/30 border border-slate-700/50 opacity-50'
+                        }`}
+                      >
+                        {/* Shadow Monarch Aura & Particles */}
+                        {isCurrent && rank.id === 'Shadow Monarch' && (
+                          <div className="absolute inset-0 pointer-events-none">
+                            <span className="absolute top-0 left-1/4 w-1.5 h-1.5 bg-purple-400 rounded-full animate-ping"></span>
+                            <span className="absolute bottom-0 right-1/3 w-2 h-2 bg-purple-500 rounded-full animate-ping delay-300"></span>
+                            <span className="absolute top-1/2 left-0 w-1 h-1 bg-purple-300 rounded-full animate-ping delay-700"></span>
+                          </div>
+                        )}
+
+                        {isCurrent && (
+                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                            <Star size={8} className="text-white fill-white" />
+                          </div>
+                        )}
+                        <div className={`flex justify-center mb-1 ${!isUnlocked ? 'grayscale' : ''}`}>
+                          {rank.icon}
+                        </div>
+                        <p className={`text-[10px] font-bold capitalize ${isCurrent ? 'text-white' : isUnlocked ? 'text-slate-300' : 'text-slate-500'}`}>
+                          {rank.name}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* XP Earning Info */}
+                <div className="mt-4 pt-4 border-t border-slate-700/50">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <Zap size={12} className="text-yellow-400" />
+                      <span>Meal</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <Zap size={12} className="text-orange-400" />
+                      <span>Workout</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <Zap size={12} className="text-blue-400" />
+                      <span>Progress</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
+                    <span>+10 XP</span>
+                    <span>+50 XP</span>
+                    <span>+20 XP</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Account Settings */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Settings</h3>
@@ -793,6 +991,80 @@ const Profile: React.FC = () => {
             </div>
           </div>
         )}
+
+        <style>{`
+          .shadow-monarch {
+            position: relative;
+            border-radius: 16px;
+            background: #0b0b12;
+            overflow: hidden;
+            z-index: 0;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+          }
+
+          /* API YANG JALAN NGELILINGIN */
+          .shadow-monarch::before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            border-radius: inherit;
+            padding: 2px;
+
+            background: linear-gradient(
+              90deg,
+              transparent 0%,
+              transparent 40%,
+              #7c3aed 50%,
+              #c084fc 55%,
+              #ffffff 58%,
+              #c084fc 60%,
+              #7c3aed 65%,
+              transparent 75%,
+              transparent 100%
+            );
+
+            background-size: 300% 100%;
+            animation: fire-flow 2s linear infinite;
+
+            /* jadiin cuma border */
+            -webkit-mask: 
+              linear-gradient(#000 0 0) content-box,
+              linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+
+            z-index: 2;
+          }
+
+          /* GLOW API HALUS */
+          .shadow-monarch::after {
+            content: "";
+            position: absolute;
+            inset: -6px;
+            border-radius: inherit;
+
+            background: radial-gradient(circle, rgba(168,85,247,0.4), transparent 60%);
+            filter: blur(10px);
+            opacity: 0.8;
+
+            animation: flame-pulse 2s ease-in-out infinite;
+            z-index: 1;
+          }
+
+          @keyframes fire-flow {
+            0% {
+              background-position: 0% 50%;
+            }
+            100% {
+              background-position: 300% 50%;
+            }
+          }
+
+          @keyframes flame-pulse {
+            0%,100% { opacity: 0.6; }
+            50% { opacity: 1; }
+          }
+        `}</style>
       </div>
     </div>
   );

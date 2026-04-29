@@ -12,7 +12,16 @@ import {
   PieChart,
   Heart,
   Zap,
-  Calendar
+  Calendar,
+  Award,
+  Star,
+  Trophy,
+  Medal,
+  Crown,
+  Sparkles,
+  Lock,
+  CheckCircle,
+  ArrowUp
 } from 'lucide-react';
 import { auth, db } from '../firebase';
 import { 
@@ -22,7 +31,7 @@ import {
   getDocs, 
   orderBy
 } from 'firebase/firestore';
-import { useDailyLog } from '../context/DailyLogContext';
+import { useDailyLog, getRankFromXP } from '../context/DailyLogContext';
 import { onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
 
 // --- TIPE DATA ---
@@ -84,6 +93,73 @@ const Progress: React.FC = () => {
 
   // --- HELPER: FORMAT TANGGAL ---
   const getDateKey = (date: Date) => date.toISOString().split('T')[0];
+
+  // --- XP & RANK SYSTEM HELPERS ---
+  const RANK_DATA = [
+    { id: 'bronze', name: 'Bronze', minXP: 0, maxXP: 499, icon: <Medal size={24} className="text-amber-700" />, bgColor: 'bg-amber-900/30', rewards: 'Basic Features' },
+    { id: 'silver', name: 'Silver', minXP: 500, maxXP: 1499, icon: <Medal size={24} className="text-gray-300" />, bgColor: 'bg-gray-400/30', rewards: 'Priority Support' },
+    { id: 'gold', name: 'Gold', minXP: 1500, maxXP: 2999, icon: <Trophy size={24} className="text-yellow-500" />, bgColor: 'bg-yellow-500/30', rewards: 'AI Recommendations' },
+    { id: 'platinum', name: 'Platinum', minXP: 3000, maxXP: 5999, icon: <Award size={24} className="text-cyan-400" />, bgColor: 'bg-cyan-400/30', rewards: 'Advanced Analytics' },
+    { id: 'Shadow Monarch', name: 'Shadow Monarch', minXP: 6000, maxXP: 99999, icon: <Crown size={24} className="text-purple-400" />, bgColor: 'bg-purple-500/30', rewards: 'VIP Access' },
+  ];
+
+  const getRankIcon = (rank: string) => {
+    const rankData = RANK_DATA.find(r => r.id === rank);
+    if (!rankData) return <Medal size={28} className="text-amber-700" />;
+    return rankData.icon;
+  };
+
+  const getNextRank = (currentXP: number): string => {
+    for (const rank of RANK_DATA) {
+      if (currentXP < rank.maxXP) {
+        return rank.name;
+      }
+    }
+    return 'Max Level!';
+  };
+
+  const getXPForNextRank = (currentXP: number): number => {
+    for (const rank of RANK_DATA) {
+      if (currentXP < rank.maxXP) {
+        return rank.maxXP + 1;
+      }
+    }
+    return currentXP;
+  };
+
+  const getXPProgress = (currentXP: number): number => {
+    for (let i = 0; i < RANK_DATA.length; i++) {
+      const rank = RANK_DATA[i];
+      if (currentXP <= rank.maxXP) {
+        if (i === 0) {
+          return (currentXP / rank.maxXP) * 100;
+        }
+        const prevRank = RANK_DATA[i - 1];
+        const progressInTier = currentXP - prevRank.maxXP;
+        const tierRange = rank.maxXP - prevRank.maxXP;
+        return (progressInTier / tierRange) * 100;
+      }
+    }
+    return 100;
+  };
+
+  const isRankUnlocked = (rankId: string, currentXP: number): boolean => {
+    const rank = RANK_DATA.find(r => r.id === rankId);
+    if (!rank) return false;
+    return currentXP >= rank.minXP;
+  };
+
+  const getRankAnimation = (rankId: string, isCurrent: boolean) => {
+    if (!isCurrent) return '';
+    switch (rankId) {
+      case 'bronze': return 'ring-1 ring-amber-700/30 shadow-[0_0_10px_rgba(180,83,9,0.2)]';
+      case 'silver': return 'ring-2 ring-gray-400/30 shadow-[0_0_15px_rgba(156,163,175,0.3)]';
+      case 'gold': return 'ring-2 ring-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.5)] animate-pulse';
+      case 'platinum': return 'ring-2 ring-cyan-400/60 shadow-[0_0_25px_rgba(34,211,238,0.6)] animate-pulse scale-105';
+      case 'Shadow Monarch': return 'shadow-monarch brutal';
+      default: return '';
+    }
+  };
 
   const fetchData = useCallback(async () => {
     if (!authUser || !db) return;
@@ -352,6 +428,167 @@ const Progress: React.FC = () => {
                 </div>
              </div>
              <p className="text-xs text-gray-400 mt-3">Last 7 days</p>
+          </div>
+        </div>
+
+        {/* --- XP & RANK SYSTEM SECTION --- */}
+        <div className="mb-8">
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+            {/* Background Decorations */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-2xl font-bold text-white flex items-center">
+                    <Sparkles className="mr-3 text-emerald-400" size={28} />
+                    XP & Rank Progress
+                  </h3>
+                  <p className="text-slate-400 mt-1">Track your journey to the next rank</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-slate-400 text-sm">Current Rank</p>
+                  <div className="flex items-center justify-end gap-2 mt-1">
+                    {getRankIcon(getRankFromXP(userProfile?.xp || 0))}
+                    <span className="text-2xl font-bold text-white capitalize">{getRankFromXP(userProfile?.xp || 0)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* XP Progress Bar */}
+              <div className="mb-8">
+                <div className="flex justify-between items-end mb-3">
+                  <div>
+                    <p className="text-slate-400 text-sm">Total XP</p>
+                    <p className="text-4xl font-bold text-white">{userProfile?.xp || 0}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-slate-400 text-sm">Next Rank</p>
+                    <p className="text-xl font-bold text-emerald-400">{getNextRank(userProfile?.xp || 0)}</p>
+                  </div>
+                </div>
+                <div className="h-4 bg-slate-700/50 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 rounded-full transition-all duration-1000 relative"
+                    style={{ width: `${getXPProgress(userProfile?.xp || 0)}%` }}
+                  >
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-5 h-5 bg-white rounded-full shadow-lg animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="flex justify-between mt-2 text-xs text-slate-500">
+                  <span>{userProfile?.xp || 0} XP</span>
+                  <span>{getXPForNextRank(userProfile?.xp || 0)} XP</span>
+                </div>
+              </div>
+
+              {/* Rank Cards */}
+              <div className="grid grid-cols-5 gap-4">
+                {RANK_DATA.map((rank, idx) => {
+                  const isUnlocked = isRankUnlocked(rank.id, userProfile?.xp || 0);
+                  const isCurrent = rank.id === getRankFromXP(userProfile?.xp || 0);
+                  
+                  return (
+                    <div 
+                      key={rank.id}
+                      className={`relative p-4 rounded-2xl overflow-hidden transition-all duration-300 ${
+                        isCurrent 
+                          ? `bg-gradient-to-b from-emerald-500/20 to-transparent border-2 border-emerald-400/50 ${getRankAnimation(rank.id, true)}` 
+                          : isUnlocked 
+                            ? 'bg-slate-800/50 border border-slate-700 hover:border-slate-600' 
+                            : 'bg-slate-800/30 border border-slate-700/50 opacity-60'
+                      }`}
+                    >
+                      {/* Shadow Monarch Aura & Particles */}
+                      {isCurrent && rank.id === 'Shadow Monarch' && (
+                        <div className="absolute inset-0 pointer-events-none">
+                          <span className="absolute top-0 left-1/4 w-1.5 h-1.5 bg-purple-400 rounded-full animate-ping"></span>
+                          <span className="absolute bottom-0 right-1/3 w-2 h-2 bg-purple-500 rounded-full animate-ping delay-300"></span>
+                          <span className="absolute top-1/2 left-0 w-1 h-1 bg-purple-300 rounded-full animate-ping delay-700"></span>
+                        </div>
+                      )}
+
+                      {/* Status Indicator */}
+                      <div className="absolute -top-2 -right-2">
+                        {isCurrent ? (
+                          <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                            <Star size={12} className="text-white fill-white" />
+                          </div>
+                        ) : isUnlocked ? (
+                          <div className="w-6 h-6 bg-slate-700 rounded-full flex items-center justify-center">
+                            <CheckCircle size={12} className="text-slate-400" />
+                          </div>
+                        ) : (
+                          <div className="w-6 h-6 bg-slate-800 rounded-full flex items-center justify-center">
+                            <Lock size={10} className="text-slate-600" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Rank Icon */}
+                      <div className={`flex justify-center mb-3 transition-transform`}>
+                        <div className={`p-3 rounded-full ${rank.bgColor} ${isUnlocked ? '' : 'grayscale opacity-50'}`}>
+                          {rank.icon}
+                        </div>
+                      </div>
+
+                      {/* Rank Name */}
+                      <p className={`text-center font-bold text-sm capitalize ${isCurrent ? 'text-white' : isUnlocked ? 'text-slate-300' : 'text-slate-500'}`}>
+                        {rank.name}
+                      </p>
+
+                      {/* XP Range */}
+                      <p className={`text-center text-xs mt-1 ${isCurrent ? 'text-emerald-400' : 'text-slate-500'}`}>
+                        {rank.minXP}+ XP
+                      </p>
+
+                      {/* Rewards Info */}
+                      <div className="mt-3 pt-3 border-t border-slate-700/50">
+                        <p className="text-[10px] text-slate-500 text-center">Rewards</p>
+                        <p className="text-xs text-center text-slate-400 mt-1">{rank.rewards}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* XP Earning Tips */}
+              <div className="mt-8 p-4 bg-slate-800/50 rounded-xl border border-slate-700">
+                <p className="text-sm font-semibold text-white mb-3 flex items-center">
+                  <Zap size={16} className="text-yellow-400 mr-2" />
+                  Cara Mendapatkan XP
+                </p>
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                      <Utensils size={16} className="text-emerald-400" />
+                    </div>
+                    <div>
+                      <p className="text-slate-300">Makan</p>
+                      <p className="text-xs text-slate-500">+10 XP</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                      <Dumbbell size={16} className="text-orange-400" />
+                    </div>
+                    <div>
+                      <p className="text-slate-300">Workout</p>
+                      <p className="text-xs text-slate-500">+50 XP</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      <Scale size={16} className="text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-slate-300">Progress</p>
+                      <p className="text-xs text-slate-500">+20 XP</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -668,6 +905,76 @@ const Progress: React.FC = () => {
             </div>
           </div>
         )}
+
+        <style>{`
+          .shadow-monarch {
+            position: relative;
+            border-radius: 16px;
+            background: #0b0b12;
+            overflow: hidden;
+            z-index: 0;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+          }
+
+          /* API YANG JALAN NGELILINGIN */
+          .shadow-monarch::before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            border-radius: inherit;
+            padding: 2px;
+
+            background: linear-gradient(
+              90deg,
+              transparent 0%,
+              transparent 40%,
+              #7c3aed 50%,
+              #c084fc 55%,
+              #ffffff 58%,
+              #c084fc 60%,
+              #7c3aed 65%,
+              transparent 75%,
+              transparent 100%
+            );
+
+            background-size: 300% 100%;
+            animation: fire-flow 2s linear infinite;
+
+            /* jadiin cuma border */
+            -webkit-mask: 
+              linear-gradient(#000 0 0) content-box,
+              linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+
+            z-index: 2;
+          }
+
+          /* GLOW API HALUS */
+          .shadow-monarch::after {
+            content: "";
+            position: absolute;
+            inset: -6px;
+            border-radius: inherit;
+
+            background: radial-gradient(circle, rgba(168,85,247,0.4), transparent 60%);
+            filter: blur(10px);
+            opacity: 0.8;
+
+            animation: flame-pulse 2s ease-in-out infinite;
+            z-index: 1;
+          }
+
+          @keyframes flame-run {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+
+          @keyframes flame-pulse {
+            0%,100% { opacity: 0.6; }
+            50% { opacity: 1; }
+          }
+        `}</style>
       </div>
     </div>
   );

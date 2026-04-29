@@ -393,12 +393,13 @@ const MealPlanning: React.FC = () => {
     
     const prompt = `
     Kamu adalah Ahli Gizi Dietetik profesional dengan spesialisasi kuliner nusantara.
-    TUGAS: Buatkan 1 set rencana makan harian Indonesia yang variatif dan sehat. Gunakan Variation Seed: ${variationSeed} untuk menu UNIK.
+    TUGAS: Buatkan 1 set rencana makan harian yang SANGAT EKSOTIK dan BERVARIASI (Variation Seed: ${variationSeed}). 
     OUTPUT WAJIB JSON VALID. TANPA PREAMBLE, TANPA PENJELASAN TEKS DI LUAR JSON.
     ATURAN KONTEN:
-    1. VARIASI: Setiap refresh WAJIB menghasilkan menu berbeda.
+    1. ANTI-MAINSTREAM: JANGAN berikan menu membosankan seperti Nasi Goreng atau Gado-Gado. Jelajahi menu seperti: Pepes Ikan, Ayam Pop, Rawon tanpa lemak, Papeda, atau menu sehat internasional (Quinoa bowl, Salad tempe bakar).
+    2. KARBOHIDRAT VARIATIF: Jangan hanya nasi putih. Gunakan alternatif seperti Ubi, Singkong, Jagung, atau Nasi Merah secara bergantian.
     2. PORSI DETAIL: Field "portions" WAJIB sangat spesifik (contoh: "100g Nasi Merah, 1 butir Telur Rebus").
-    3. KELENGKapan NUTRISI: Target Harian: ${profileForAI.dailyCalories} kcal, ${proteinTargetHint}. Jika kurang protein, WAJIB tambahkan "Side Dish".
+    3. KELENGKAPAN NUTRISI: Target Harian: ${profileForAI.dailyCalories} kcal, ${proteinTargetHint}.
     4. REASONING MENDALAM: Jelaskan kaitan menu dengan target user (${profileForAI.goal}).
     5. STRUKTUR: 1 kategori = 1 menu (Single Object).
     6. PANTANGAN & ALERGI (MUTLAK): JANGAN PERNAH menyertakan bahan dari pantangan atau alergi user.

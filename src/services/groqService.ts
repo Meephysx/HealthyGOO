@@ -12,15 +12,77 @@ type BackendMessage = {
   content: string;
 };
 
+// Structured data types from backend
+export interface StructuredMealPlan {
+  Sarapan?: {
+    menu: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    portions?: string;
+    time?: string;
+  };
+  MakanSiang?: {
+    menu: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    portions?: string;
+    time?: string;
+  };
+  MakanMalam?: {
+    menu: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    portions?: string;
+    time?: string;
+  };
+  snacks?: {
+    menu: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    portions?: string;
+    time?: string;
+  };
+  totalCalories?: number;
+}
+
+export interface StructuredWorkoutPlan {
+  day?: string;
+  focus?: string;
+  duration?: string;
+  intensity?: string;
+  exercises?: {
+    name: string;
+    sets: string;
+    caloriesPerSet: number;
+  }[];
+}
+
+export interface AIResponse {
+  reply: string;
+  structured_meal_plan?: StructuredMealPlan;
+  structured_workout_plan?: StructuredWorkoutPlan;
+  offline?: boolean;
+  model_used?: string;
+  error?: string;
+}
+
 /**
  * Sends the chat history to our own backend AI handler.
  * @param messages The history of messages from the chat component.
- * @returns The AI's reply text.
+ * @returns The AI's reply text and structured data.
  */
 export const sendMessage = async (
   messages: AppMessage[],
   userProfile: any | null = null
-): Promise<string> => {
+): Promise<AIResponse> => {
   const backendMessages: BackendMessage[] = messages.map((msg) => ({
     role: msg.sender === "user" ? "user" : "assistant",
     content: msg.text,
@@ -43,16 +105,19 @@ export const sendMessage = async (
       throw new Error(`Backend request failed with status ${response.status}`);
     }
 
-    const data = await response.json();
+    const data: AIResponse = await response.json();
 
     // The backend returns an object with a "reply" field.
     if (!data.reply) {
       throw new Error("Invalid response format from backend");
     }
 
-    return data.reply;
+    return data;
   } catch (error) {
     console.error("Failed to send message to backend:", error);
-    return "Sorry, I'm having trouble communicating with the server. Please try again later.";
+    return {
+      reply: "Sorry, I'm having trouble communicating with the server. Please try again later.",
+      error: error instanceof Error ? error.message : "Unknown error"
+    };
   }
 };

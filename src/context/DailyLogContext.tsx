@@ -20,6 +20,8 @@ interface UserProfile {
   fullname?: string;
   name?: string;
   bmi?: number;
+  xp?: number;
+  rank?: string;
 }
 
 export interface FoodItem {
@@ -100,7 +102,7 @@ interface DailyLogContextType {
   addExercise: (exercise: Omit<WorkoutExercise, 'id' | 'completed'>) => Promise<void>;
   toggleExerciseCompleted: (exerciseId: string) => Promise<void>;
   removeExercise: (exerciseId: string) => Promise<void>;
-  generateAIWorkoutPlan: (location: 'home' | 'gym') => Promise<void>;
+  generateAIWorkoutPlan: (location: 'home' | 'gym', split?: string) => Promise<void>;
 
   // Progress Actions
   addProgressEntry: (weight: number, notes?: string) => Promise<void>;
@@ -108,6 +110,20 @@ interface DailyLogContextType {
 }
 
 // --- HELPER ---
+export const getRankFromXP = (xp: number): string => {
+  if (xp >= 6000) return 'Shadow Monarch';
+  if (xp >= 3000) return 'platinum';
+  if (xp >= 1500) return 'gold';
+  if (xp >= 500) return 'silver';
+  return 'bronze';
+};
+
+const XP_REWARDS = {
+  MEAL: 10,
+  WORKOUT: 50,
+  PROGRESS: 20
+};
+
 const normalizeAIMealPlan = (plan: any): FoodItem[] => {
     const MEAL_TYPES: MealType[] = ['Sarapan', 'MakanSiang', 'MakanMalam', 'snacks'];
     const foods: FoodItem[] = [];
@@ -257,6 +273,23 @@ export const DailyLogProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [userProfile, consumedCalories, burnedCalories]
   );
 
+  // --- XP SYSTEM ---
+  const addXP = useCallback(async (amount: number) => {
+    if (!auth.currentUser || !userProfile) return;
+    const currentXP = userProfile.xp || 0;
+    const newXP = Math.max(0, currentXP + amount);
+    const newRank = getRankFromXP(newXP);
+    
+    try {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        xp: newXP,
+        rank: newRank
+      });
+    } catch (err) {
+      console.error("Error updating XP:", err);
+    }
+  }, [userProfile]);
+
   // --- ACTIONS ---
   const updateMealLog = useCallback(async (updatedFoods: FoodItem[]) => {
     if (!auth.currentUser || !userProfile) return;
@@ -284,9 +317,13 @@ export const DailyLogProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const toggleFoodConsumed = useCallback(async (foodId: string) => {
     if (!mealLog) return;
+    const food = mealLog.foods.find(f => f.id === foodId);
+    if (!food) return;
+
     const updatedFoods = mealLog.foods.map(f => f.id === foodId ? { ...f, consumed: !f.consumed } : f);
     await updateMealLog(updatedFoods);
-  }, [mealLog, updateMealLog]);
+    await addXP(!food.consumed ? XP_REWARDS.MEAL : -XP_REWARDS.MEAL);
+  }, [mealLog, updateMealLog, addXP]);
   
   const removeFoodItem = useCallback(async (foodId: string) => {
     if (!mealLog) return;
@@ -304,9 +341,10 @@ export const DailyLogProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const { callAi, parseJsonLike } = await import('../utils/aiClient');
         const variationSeed = Math.floor(Math.random() * 10000);
         const prompt = `
-        TUGAS: Buatkan 1 set rencana makan harian Indonesia. OUTPUT WAJIB JSON VALID.
+        TUGAS: Buatkan 1 set rencana makan harian yang unik dan kreatif (Variation Seed: ${variationSeed}). 
         ATURAN:
-        1. KELENGKapan NUTRISI: Target Harian: ${userProfile.dailyCalories} kcal.
+        1. EKSPLORASI: Hindari menu standar (Nasi Goreng/Gado-gado). Gunakan bahan beragam (seafood, kacang-kacangan, umbi-umbian).
+        2. KELENGKAPAN NUTRISI: Target Harian: ${userProfile.dailyCalories} kcal.
         2. PORSI DETAIL: Field "portions" WAJIB spesifik (contoh: "100g Nasi Merah, 1 butir Telur Rebus").
         STRUKTUR JSON:
         {
@@ -339,7 +377,7 @@ export const DailyLogProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [userProfile, mealLog, updateMealLog]);
 
   // --- WORKOUT ACTIONS ---
-  const updateWorkoutLog = useCallback(async (updatedExercises: WorkoutExercise[], locationOverride?: 'home' | 'gym') => {
+  const updateWorkoutLog = useCallback(async (updatedExercises: WorkoutExercise[], locationOverride?: 'home' | 'gym', typeOverride?: string) => {
     if (!auth.currentUser || !userProfile) return;
     const totalCalories = updatedExercises.reduce((sum, ex) => {
       return sum + (ex.completed ? (ex.caloriesBurned || ex.caloriesPerSet || 0) : 0);
@@ -351,7 +389,7 @@ export const DailyLogProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       exercises: updatedExercises,
       totalCalories,
       totalDuration,
-      workoutType: workoutLog?.workoutType || 'General',
+      workoutType: typeOverride || workoutLog?.workoutType || 'General',
       workoutLocation,
     }, getDateKey(new Date()));
   }, [userProfile, workoutLog]);
@@ -367,18 +405,22 @@ export const DailyLogProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const toggleExerciseCompleted = useCallback(async (exerciseId: string) => {
     if (!workoutLog || !Array.isArray(workoutLog.exercises)) return;
+    const ex = workoutLog.exercises.find(e => e.id === exerciseId);
+    if (!ex) return;
+
     const updatedExercises = workoutLog.exercises.map(ex => 
       ex.id === exerciseId ? { ...ex, completed: !ex.completed } : ex
     );
     await updateWorkoutLog(updatedExercises);
-  }, [workoutLog, updateWorkoutLog]);
+    await addXP(!ex.completed ? XP_REWARDS.WORKOUT : -XP_REWARDS.WORKOUT);
+  }, [workoutLog, updateWorkoutLog, addXP]);
 
   const removeExercise = useCallback(async (exerciseId: string) => {
     if (!workoutLog || !Array.isArray(workoutLog.exercises)) return;
     await updateWorkoutLog(workoutLog.exercises.filter(ex => ex.id !== exerciseId));
   }, [workoutLog, updateWorkoutLog]);
 
-  const generateAIWorkoutPlan = useCallback(async (location: 'home' | 'gym') => {
+  const generateAIWorkoutPlan = useCallback(async (location: 'home' | 'gym', split: string = 'Full Body') => {
     if (!userProfile) {
       setAiError("User profile is not loaded.");
       return;
@@ -387,8 +429,20 @@ export const DailyLogProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setAiError(null);
     try {
         const { callAi, parseJsonLike } = await import('../utils/aiClient');
+        const variationSeed = Date.now();
+        
+        const locationSpecificInstruction = location === 'home' 
+          ? "LOKASI RUMAH: WAJIB gunakan hanya berat badan (Bodyweight) atau barang rumah tangga. Contoh: Diamond Pushup, Wide Pushup, Dips kursi."
+          : "LOKASI GYM: WAJIB maksimalkan alat gym (Barbell, Dumbbell, Mesin Kabel). Contoh: Bench Press, Incline Dumbbell Curls, Lat Pulldown.";
+
         const prompt = `
-        TUGAS: Buatkan 1 rencana latihan harian untuk ${location === 'home' ? 'rumah' : 'gym'} yang dirancang untuk pengguna. OUTPUT WAJIB JSON VALID.
+        TUGAS: Buatkan 1 rencana latihan harian yang SANGAT UNIK (Variation Seed: ${variationSeed}) dengan fokus "${split}" untuk lokasi ${location.toUpperCase()}. 
+        ${locationSpecificInstruction}
+        
+        PENTING: 
+        1. Hindari pengulangan gerakan yang sama dengan sesi sebelumnya.
+        2. Campurkan gerakan Compound dan Isolation.
+        3. OUTPUT HANYA JSON VALID, TANPA TEKS PENJELASAN LAIN.
         PROFIL USER:
         - Usia: ${userProfile.age}, Gender: ${userProfile.gender}
         - BB: ${userProfile.weight}kg, TB: ${userProfile.height}cm
@@ -401,7 +455,7 @@ export const DailyLogProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           {"name":"Nama Latihan","sets":"3x10","caloriesPerSet":15,"reasoning":"..."}
         ]
         
-        Buatkan 4-6 latihan yang dapat dilakukan di ${location === 'home' ? 'rumah menggunakan peralatan minimal atau bodyweight saja' : 'gym dengan akses alat kebugaran'}. Setiap exercise harus memiliki nama, sets, caloriesPerSet, dan reasoning.`;
+        Buatkan 4-6 latihan yang bervariasi untuk sesi ${split}. Setiap exercise harus memiliki nama, sets, caloriesPerSet, dan reasoning (alasan kenapa gerakan ini bagus untuk target user).`;
 
         const data = await callAi([{ role: 'user', content: prompt }], 'llama-3.1-8b-instant', 120000);
         if (data.offline || !data.reply) throw new Error(data.reply || 'AI is offline.');
@@ -418,7 +472,7 @@ export const DailyLogProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }));
 
         const manualExercises = workoutLog?.exercises.filter(ex => !ex.id.startsWith('ai-ex')) || [];
-        await updateWorkoutLog([...manualExercises, ...aiExercises], location);
+        await updateWorkoutLog([...manualExercises, ...aiExercises], location, split);
 
     } catch (err: any) {
         console.error("AI Workout Error:", err);
@@ -442,11 +496,13 @@ export const DailyLogProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         notes,
         createdAt: serverTimestamp()
       });
+
+      await addXP(XP_REWARDS.PROGRESS);
     } catch (err) {
       console.error("Error adding progress entry:", err);
       setAiError("Failed to save progress entry.");
     }
-  }, []);
+  }, [addXP]);
 
   const updateProgressEntry = useCallback(async (entryId: string, weight: number, notes?: string) => {
     try {

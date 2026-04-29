@@ -10,7 +10,7 @@ console.log('[backend] aiRoutes (Ultimate Version) module loaded');
 // --- KONFIGURASI ---
 const DEFAULT_MODEL = 'llama-3.1-8b-instant'; // Model Cepat & Pintar
 const MAX_TOKENS = 4096; // WAJIB BESAR agar rencana diet/gym tidak terpotong
-const TEMPERATURE = 0.6; // Sedikit lebih rendah agar output konsisten
+const TEMPERATURE = 0.8; // Ditingkatkan agar output lebih bervariasi dan tidak membosankan
 const TIMEOUT_MS = 25000; // 25 Detik timeout (aman untuk jawaban panjang)
 
 // --- INISIALISASI GROQ ---
@@ -35,14 +35,28 @@ const SYSTEM_PROMPTS = {
   If asked for a meal plan, provide a structured list for: Breakfast (Sarapan), Lunch (Makan Siang), Dinner (Makan Malam), and Snacks.
   Ensure the TOTAL daily calories and macros meet the user's specific needs. If a meal is low in protein, include side dishes (like tempeh, tofu, eggs) to balance it.
   
+  VARIETY RULE: Avoid common/repetitive meals like "Nasi Goreng" or "Gado-Gado" unless they are uniquely modified. 
+  Explore various Indonesian regional cuisines and international healthy options. 
+  Rotate carb sources (sweet potato, cassava, corn, brown rice) and protein sources (fish, lean meat, plant-based).
+
   CRITICAL SAFETY RULE: You MUST strictly adhere to the user's allergies and dietary restrictions. NEVER suggest food containing allergens specified by the user. Check for hidden ingredients (e.g., peanuts in sauces, shrimp paste in sambal).
   
   For each item, explicitly mention the Menu Name, Calories (kcal), Protein (g), Carbs (g), and Fat (g).
   If the user requests JSON, provide ONLY JSON. Otherwise, format the output clearly using bullet points. Use Indonesian language.`,
   
   exercise: `You are a professional Fitness Trainer.
-  If asked for a workout plan, provide a list of exercises.
+  If asked for a workout plan, provide a list of exercises based on the requested split (e.g., Push, Pull, Legs, or Full Body).
+  - PUSH: Focus on Chest, Shoulders, and Triceps.
+  - PULL: Focus on Back and Biceps.
+  - LEGS: Focus on Quads, Hamstrings, and Calves.
+
+  EQUIPMENT GUIDELINES:
+  - HOME: Bodyweight only or minimal equipment. NO bench press or heavy machines. Focus on variations (e.g., Wide/Diamond/Pike Pushups).
+  - GYM: Utilize Barbells, Dumbbells, and Machines. Focus on progressive overload (e.g., Incline Bench Press, Dumbbell Curls).
+  
+  CRITICAL: Every time you are asked, you MUST provide a different combination of exercises than common ones. Avoid repetition.
   For each exercise, mention the Name, Sets, Reps, and estimated calories burned.
+  Ensure the exercises match the user's location (Home/Gym).
   Format output clearly. Use Indonesian language.`,
   
   general: `You are a helpful health assistant. Answer in Indonesian. be concise and helpful.`

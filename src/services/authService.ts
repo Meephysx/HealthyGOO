@@ -7,6 +7,8 @@ import {
   onAuthStateChanged,
   signOut,
   updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup,
   User,
   ConfirmationResult,
 } from "firebase/auth";
@@ -32,6 +34,15 @@ async function saveUserIfNotExists(user: User, provider = "email") {
         provider,
         createdAt: serverTimestamp(),
       });
+    } else {
+      // Update existing user with latest auth data (name, email from Google)
+      await setDoc(ref, {
+        name: user.displayName || "",
+        email: user.email || "",
+        phone: user.phoneNumber || "",
+        provider,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
     }
   } catch (err) {
     console.error("saveUserIfNotExists", err);
@@ -125,6 +136,23 @@ export async function logout() {
   await signOut(auth);
 }
 
+export async function signInWithGoogle() {
+  try {
+    const provider = new GoogleAuthProvider();
+    // Add scopes if needed
+    provider.addScope("profile");
+    provider.addScope("email");
+    
+    const cred = await signInWithPopup(auth, provider);
+    const user = cred.user;
+    await saveUserIfNotExists(user, "google");
+    return user;
+  } catch (err) {
+    console.error("signInWithGoogle", err);
+    throw err;
+  }
+}
+
 export default {
   registerWithEmail,
   resendVerification,
@@ -134,4 +162,5 @@ export default {
   initRecaptcha,
   observeAuth,
   logout,
+  signInWithGoogle,
 };

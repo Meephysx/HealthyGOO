@@ -37,6 +37,9 @@ import {
 } from "firebase/auth";
 import authService from "../services/authService";
 
+// Google Icon
+import { FaGoogle } from "react-icons/fa";
+
 const Onboarding: React.FC = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
@@ -85,7 +88,7 @@ const Onboarding: React.FC = () => {
         const existingData = userProfile || {};
         setFormData(prev => ({ 
             ...prev, 
-            name: user.displayName || existingData.name || '', 
+            name: user.displayName || existingData.name || existingData.fullname || '', 
             email: user.email || existingData.email || '',
             ...existingData 
         }));
@@ -96,8 +99,13 @@ const Onboarding: React.FC = () => {
         return;
       }
       
-      // If profile is complete, save to localStorage and navigate
-      localStorage.setItem("user", JSON.stringify(userProfile));
+      // If profile is complete, save to localStorage with updated name from Auth
+      const userData = {
+        ...userProfile,
+        name: user.displayName || userProfile.name || userProfile.fullname || '',
+        email: user.email || userProfile.email || '',
+      };
+      localStorage.setItem("user", JSON.stringify(userData));
       navigate("/dashboard");
 
     } catch (err: any) {
@@ -115,6 +123,58 @@ const Onboarding: React.FC = () => {
         case "auth/network-request-failed":
           friendlyMessage = "Network error. Please check your connection and try again.";
           break;
+      }
+      setLoginError(friendlyMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ==== GOOGLE LOGIN ====
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    setLoginError("");
+    try {
+      // 1. Sign in with Google via authService
+      const user = await authService.signInWithGoogle();
+
+      // 2. Fetch user profile from Firestore
+      const userProfile = await getUserProfile(user.uid);
+
+      // 3. Check if profile is complete
+      if (!userProfile || !userProfile.profileCompleted) {
+        console.warn(`User ${user.uid} authenticated with Google but profile is not complete.`);
+        setLoginError("Your profile is not complete. Please follow the steps to finish setup.");
+        
+        // Pre-fill form with Google data
+        setFormData(prev => ({ 
+            ...prev, 
+            name: user.displayName || '', 
+            email: user.email || '',
+        }));
+        
+        setIsRegister(true);
+        setCurrentStep(2);
+        setIsLoading(false);
+        return;
+      }
+      
+      // If profile is complete, save to localStorage with updated name from Google
+      const userData = {
+        ...userProfile,
+        name: user.displayName || userProfile.name || userProfile.fullname || '',
+        email: user.email || userProfile.email || '',
+      };
+      localStorage.setItem("user", JSON.stringify(userData));
+      navigate("/dashboard");
+
+    } catch (err: any) {
+      console.error("Google Login Error:", err);
+      let friendlyMessage = "Google login failed. Please try again.";
+      if (err.code === "auth/popup-closed-by-user") {
+        friendlyMessage = "Login popup was closed. Please try again.";
+      } else if (err.code === "auth/network-request-failed") {
+        friendlyMessage = "Network error. Please check your connection and try again.";
       }
       setLoginError(friendlyMessage);
     } finally {
@@ -185,7 +245,13 @@ const Onboarding: React.FC = () => {
         await setDoc(doc(db, "users", user.uid), newProfile);
         localStorage.setItem("user", JSON.stringify(newProfile));
       } else {
-        localStorage.setItem("user", JSON.stringify(userProfile));
+        // Update localStorage with latest data from Auth
+        const userData = {
+          ...userProfile,
+          name: user.displayName || userProfile.name || userProfile.fullname || '',
+          email: user.email || userProfile.email || '',
+        };
+        localStorage.setItem("user", JSON.stringify(userData));
       }
       navigate("/dashboard");
     } catch (err: any) {
@@ -399,6 +465,23 @@ const Onboarding: React.FC = () => {
                   {isLoading ? "Processing..." : (isRegister ? "Register" : "Login")}
                 </button>
 
+                {/* Divider */}
+                <div className="flex items-center gap-4 my-6">
+                  <div className="flex-1 h-px bg-gray-200"></div>
+                  <span className="text-sm text-gray-400">or</span>
+                  <div className="flex-1 h-px bg-gray-200"></div>
+                </div>
+
+                {/* Google Login Button */}
+                <button
+                  onClick={handleGoogleLogin}
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-center gap-3 px-8 py-3 border-2 border-gray-200 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition disabled:opacity-50"
+                >
+                  <FaGoogle className="w-5 h-5" />
+                  Continue with Google
+                </button>
+
                 <p className="text-center text-sm mt-4">
                   {isRegister ? (
                     <>
@@ -430,59 +513,6 @@ const Onboarding: React.FC = () => {
                     </>
                   )}
                 </p>
-              </div>
-
-              {/* Phone OTP */}
-              <div className="border-t pt-6 mt-6">
-                <p className="text-sm font-semibold text-gray-700 mb-3">Login dengan Nomor Telepon</p>
-                
-                {!confirmationResult ? (
-                  <div className="space-y-3">
-                    <input
-                      type="tel"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="+62 812 3456 7890"
-                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
-                    />
-                    <button
-                      onClick={handleSendOTP}
-                      disabled={isLoading || !phoneNumber}
-                      className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-semibold disabled:opacity-50 hover:bg-green-700 transition"
-                    >
-                      {isLoading ? "Mengirim..." : "Kirim OTP"}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <p className="text-sm text-gray-600">Kode OTP telah dikirim ke {phoneNumber}</p>
-                    <input
-                      type="text"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                      placeholder="Masukkan 6 digit OTP"
-                      maxLength={6}
-                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400 text-center text-xl font-mono"
-                    />
-                    <button
-                      onClick={handleConfirmOTP}
-                      disabled={isLoading || otp.length !== 6}
-                      className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-semibold disabled:opacity-50 hover:bg-green-700 transition"
-                    >
-                      {isLoading ? "Verifying..." : "Verify OTP"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setConfirmationResult(null);
-                        setOtp("");
-                        setPhoneNumber("");
-                      }}
-                      className="w-full px-4 py-3 text-gray-600 rounded-lg font-semibold hover:bg-gray-100 transition"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
               </div>
 
               <div id="recaptcha-container" className="flex justify-center" />
