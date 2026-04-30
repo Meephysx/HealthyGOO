@@ -21,6 +21,8 @@ interface UserProfile {
   name?: string;
   bmi?: number;
   xp?: number;
+  totalXp?: number;
+  highestRank?: string;
   rank?: string;
 }
 
@@ -276,14 +278,28 @@ export const DailyLogProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // --- XP SYSTEM ---
   const addXP = useCallback(async (amount: number) => {
     if (!auth.currentUser || !userProfile) return;
-    const currentXP = userProfile.xp || 0;
-    const newXP = Math.max(0, currentXP + amount);
-    const newRank = getRankFromXP(newXP);
+    
+    const currentSeasonXP = userProfile.xp || 0;
+    const currentTotalXP = userProfile.totalXp || 0;
+    
+    const newSeasonXP = Math.max(0, currentSeasonXP + amount);
+    const newTotalXP = Math.max(0, currentTotalXP + amount);
+    
+    const newRank = getRankFromXP(newSeasonXP);
+    
+    // Cek apakah ini rank tertinggi baru
+    const ranks = ['bronze', 'silver', 'gold', 'platinum', 'Shadow Monarch'];
+    const currentHighestIdx = ranks.indexOf(userProfile.highestRank || 'bronze');
+    const newRankIdx = ranks.indexOf(newRank);
+    
+    const finalHighestRank = newRankIdx > currentHighestIdx ? newRank : (userProfile.highestRank || 'bronze');
     
     try {
       await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-        xp: newXP,
-        rank: newRank
+        xp: newSeasonXP,
+        totalXp: newTotalXP,
+        rank: newRank,
+        highestRank: finalHighestRank
       });
     } catch (err) {
       console.error("Error updating XP:", err);

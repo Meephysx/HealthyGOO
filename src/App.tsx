@@ -14,6 +14,7 @@ import Workouts from "./components/ExercisePlanning";
 import FoodSearch from "./components/FoodSearch";
 import Progress from "./components/Progress";
 import AiChat from "./pages/AiChat";
+import Leaderboard from "./components/Leaderboard";
 
 
 // Protected Route Component
@@ -37,7 +38,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <NutritionProvider>
         <DailyLogProvider>
           <Routes>
@@ -114,6 +115,17 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Profile />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/leaderboard"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Leaderboard />
                   </Layout>
                 </ProtectedRoute>
               }

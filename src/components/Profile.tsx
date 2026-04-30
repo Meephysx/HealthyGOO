@@ -827,7 +827,7 @@ const Profile: React.FC = () => {
                 {/* Current Rank Display */}
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-slate-400 text-xs">Current Rank</p>
+                    <p className="text-slate-400 text-xs">Season Rank</p>
                     <p className="text-2xl font-bold capitalize flex items-center gap-2">
                       {getRankFromXP(user.xp || 0)}
                       {getRankFromXP(user.xp || 0) === 'Shadow Monarch' && (
@@ -836,9 +836,20 @@ const Profile: React.FC = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-slate-400 text-xs">Total XP</p>
+                    <p className="text-slate-400 text-xs">Season Score</p>
                     <p className="text-3xl font-bold text-emerald-400">{user.xp || 0}</p>
                   </div>
+                </div>
+
+                {/* Opsi C: Highest Rank Display */}
+                <div className="mt-2 mb-4 p-3 bg-white/5 rounded-xl border border-white/10 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Trophy size={14} className="text-yellow-500" />
+                    <span className="text-[10px] text-slate-300 font-medium">Highest Rank Ever</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-white uppercase tracking-wider bg-white/10 px-2 py-0.5 rounded">
+                    {user.highestRank || 'Bronze'}
+                  </span>
                 </div>
 
                 {/* XP Progress Bar */}

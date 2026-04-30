@@ -7,7 +7,8 @@ import {
   Search, 
   TrendingUp,
   Heart,
-  Dumbbell
+  Dumbbell,
+  Trophy
 } from 'lucide-react';
 
 const Navigation: React.FC = () => {
@@ -18,6 +19,7 @@ const Navigation: React.FC = () => {
     { path: '/dashboard', icon: Home, label: 'Home' },
     { path: '/meals', icon: Calendar, label: 'Meals' }, 
     { path: '/exercises', icon: Dumbbell, label: 'Workouts' },
+    { path: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
     { path: '/progress', icon: TrendingUp, label: 'Progress' },
     { path: '/profile', icon: User, label: 'Profile' }
   ];
@@ -78,7 +80,7 @@ const Navigation: React.FC = () => {
       </nav>
 
       {/* BOTTOM NAVIGATION (Hanya 5 Item) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 pb-safe">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 pb-safe overflow-x-auto">
         <div className="flex justify-around items-center h-16">
           {navItems.map(({ path, icon: Icon, label }) => {
             const isActive = location.pathname === path;

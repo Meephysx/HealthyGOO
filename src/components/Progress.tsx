@@ -443,9 +443,22 @@ const Progress: React.FC = () => {
                 <div>
                   <h3 className="text-2xl font-bold text-white flex items-center">
                     <Sparkles className="mr-3 text-emerald-400" size={28} />
-                    XP & Rank Progress
+                      Season 1: The Beginning
                   </h3>
-                  <p className="text-slate-400 mt-1">Track your journey to the next rank</p>
+                    <div className="flex items-center gap-4 mt-2">
+                      <div>
+                        <p className="text-slate-500 text-[10px] uppercase font-bold tracking-widest">Highest Rank</p>
+                        <p className="text-white font-bold flex items-center gap-1">
+                          <Award size={14} className="text-yellow-500" />
+                          {userProfile?.highestRank || 'Bronze'}
+                        </p>
+                      </div>
+                      <div className="w-px h-8 bg-slate-700"></div>
+                      <div>
+                        <p className="text-slate-500 text-[10px] uppercase font-bold tracking-widest">All-Time Score</p>
+                        <p className="text-white font-bold">{userProfile?.totalXp || 0} <span className="text-[10px] text-slate-400">Total XP</span></p>
+                      </div>
+                    </div>
                 </div>
                 <div className="text-right">
                   <p className="text-slate-400 text-sm">Current Rank</p>
