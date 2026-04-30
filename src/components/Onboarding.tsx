@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ChevronRight,
   ChevronLeft,
-  User,
+  User as UserIcon,
   Target,
   LogIn,
 } from "lucide-react";
@@ -33,9 +33,10 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
   sendEmailVerification,
-  ConfirmationResult,
 } from "firebase/auth";
+import type { ConfirmationResult, User as FirebaseUser } from "firebase/auth";
 import authService from "../services/authService";
+import type { User as AppUser } from "../types";
 
 // Google Icon
 import { FaGoogle } from "react-icons/fa";
@@ -44,6 +45,7 @@ const Onboarding: React.FC = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [isRegister, setIsRegister] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -85,13 +87,22 @@ const Onboarding: React.FC = () => {
         setLoginError("Your profile is not complete. Please follow the steps to finish setup.");
         
         // Pre-fill form with any existing data
-        const existingData = userProfile || {};
+        const existingData = (userProfile || {}) as Partial<AppUser>;
+        const userEmail = user.email || existingData.email || loginEmail || '';
         setFormData(prev => ({ 
             ...prev, 
             name: user.displayName || existingData.name || existingData.fullname || '', 
-            email: user.email || existingData.email || '',
-            ...existingData 
+            email: userEmail,
         }));
+        
+        // Save to localStorage immediately so data persists
+        const tempUserData = {
+          uid: user.uid,
+          name: user.displayName || existingData.name || existingData.fullname || '',
+          fullname: user.displayName || existingData.name || existingData.fullname || '',
+          email: userEmail,
+        };
+        localStorage.setItem("user", JSON.stringify(tempUserData));
         
         setIsRegister(true); // Switch to registration flow UI
         setCurrentStep(2);   // Move to the profile details step
@@ -103,7 +114,8 @@ const Onboarding: React.FC = () => {
       const userData = {
         ...userProfile,
         name: user.displayName || userProfile.name || userProfile.fullname || '',
-        email: user.email || userProfile.email || '',
+        fullname: user.displayName || userProfile.name || userProfile.fullname || '',
+        email: user.email || userProfile.email || loginEmail || '',
       };
       localStorage.setItem("user", JSON.stringify(userData));
       navigate("/dashboard");
@@ -147,11 +159,21 @@ const Onboarding: React.FC = () => {
         setLoginError("Your profile is not complete. Please follow the steps to finish setup.");
         
         // Pre-fill form with Google data
+        const userEmail = user.email || '';
         setFormData(prev => ({ 
             ...prev, 
             name: user.displayName || '', 
-            email: user.email || '',
+            email: userEmail,
         }));
+        
+        // Save to localStorage immediately so data persists
+        const tempUserData = {
+          uid: user.uid,
+          name: user.displayName || '',
+          fullname: user.displayName || '',
+          email: userEmail,
+        };
+        localStorage.setItem("user", JSON.stringify(tempUserData));
         
         setIsRegister(true);
         setCurrentStep(2);
@@ -163,6 +185,7 @@ const Onboarding: React.FC = () => {
       const userData = {
         ...userProfile,
         name: user.displayName || userProfile.name || userProfile.fullname || '',
+        fullname: user.displayName || userProfile.name || userProfile.fullname || '',
         email: user.email || userProfile.email || '',
       };
       localStorage.setItem("user", JSON.stringify(userData));
@@ -186,6 +209,10 @@ const Onboarding: React.FC = () => {
   const handleRegister = async () => {
     if (!formData.name.trim()) {
       setLoginError("Full Name is required for registration.");
+      return;
+    }
+    if (!loginEmail.trim()) {
+      setLoginError("Email is required for registration.");
       return;
     }
     setIsLoading(true);
@@ -234,11 +261,13 @@ const Onboarding: React.FC = () => {
     try {
       const user = await authService.confirmPhone(confirmationResult, otp);
       const userProfile = await getUserProfile(user.uid);
+      const userEmail = user.email || '';
       if (!userProfile) {
         const newProfile = {
           uid: user.uid,
-          fullname: user.displayName || "",
-          name: user.displayName || "",
+          fullname: user.displayName || formData.name || "",
+          name: user.displayName || formData.name || "",
+          email: userEmail,
           phone: user.phoneNumber,
           createdAt: new Date().toISOString(),
         };
@@ -248,8 +277,9 @@ const Onboarding: React.FC = () => {
         // Update localStorage with latest data from Auth
         const userData = {
           ...userProfile,
-          name: user.displayName || userProfile.name || userProfile.fullname || '',
-          email: user.email || userProfile.email || '',
+          name: user.displayName || userProfile.name || userProfile.fullname || formData.name || '',
+          fullname: user.displayName || userProfile.name || userProfile.fullname || formData.name || '',
+          email: userEmail || userProfile.email || '',
         };
         localStorage.setItem("user", JSON.stringify(userData));
       }
@@ -288,7 +318,15 @@ const Onboarding: React.FC = () => {
         formData.goal
       );
 
+      // Get email from loginEmail or from auth user
+      const userEmail = loginEmail || user.email || "";
+
       const payload = {
+        // User identity - ensure both name and fullname are saved
+        name: formData.name.trim(),
+        fullname: formData.name.trim(),
+        email: userEmail,
+        // Profile data
         age,
         gender: formData.gender,
         height,
@@ -297,6 +335,7 @@ const Onboarding: React.FC = () => {
         goal: formData.goal,
         dietaryRestrictions: formData.dietaryRestrictions,
         allergies: formData.allergies,
+        // Calculated values
         bmi,
         idealWeight,
         dailyCalories,
@@ -309,7 +348,11 @@ const Onboarding: React.FC = () => {
       const currentUserLocal = JSON.parse(localStorage.getItem("user") || "{}");
       localStorage.setItem("user", JSON.stringify({
         ...currentUserLocal,
-        ...payload
+        ...payload,
+        // Ensure both name and fullname are in localStorage
+        name: formData.name.trim(),
+        fullname: formData.name.trim(),
+        email: userEmail,
       }));
       
       navigate("/dashboard");
@@ -410,59 +453,116 @@ const Onboarding: React.FC = () => {
                 <p className="text-gray-600">
                   {isRegister
                     ? "Register to get started"
-                    : "Login or create a new account"}
+                    : "Login to your account"}
                 </p>
               </div>
 
-              {/* Email & Password Form */}
+              {/* Login Method Toggle */}
+              {!isRegister && (
+                <div className="flex bg-gray-100 p-1 rounded-xl mb-6 relative z-20">
+                  <button 
+                    onClick={() => { setLoginMethod("email"); setLoginError(""); }}
+                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${loginMethod === "email" ? "bg-white text-green-600 shadow-sm" : "text-gray-500"}`}
+                  >
+                    Email
+                  </button>
+                  <button 
+                    onClick={() => { setLoginMethod("phone"); setLoginError(""); }}
+                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${loginMethod === "phone" ? "bg-white text-green-600 shadow-sm" : "text-gray-500"}`}
+                  >
+                    Phone
+                  </button>
+                </div>
+              )}
+
+              {/* Form Content */}
               <div className="space-y-4">
-                {isRegister && (
-                  <div>
-                    <label className="block font-medium mb-1">Full Name</label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
-                      placeholder="Enter your full name"
-                    />
+                {loginMethod === "email" || isRegister ? (
+                  <>
+                    {isRegister && (
+                      <div>
+                        <label className="block font-medium mb-1">Full Name</label>
+                        <input
+                          type="text"
+                          value={formData.name}
+                          onChange={(e) =>
+                            setFormData({ ...formData, name: e.target.value })
+                          }
+                          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
+                          placeholder="Enter your full name"
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block font-medium mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
+                        placeholder="Enter your email"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-medium mb-1">Password</label>
+                      <input
+                        type="password"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
+                        placeholder="Enter your password"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  /* Phone Login UI */
+                  <div className="space-y-4">
+                    {!confirmationResult ? (
+                      <div>
+                        <label className="block font-medium mb-1">Phone Number</label>
+                        <input
+                          type="tel"
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
+                          placeholder="+628123456789"
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block font-medium mb-1">Verification Code (OTP)</label>
+                        <input
+                          type="text"
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value)}
+                          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400 text-center text-2xl tracking-widest font-bold"
+                          placeholder="000000"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
-
-                <div>
-                  <label className="block font-medium mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
-                    placeholder="Enter your email"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-medium mb-1">Password</label>
-                  <input
-                    type="password"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
-                    placeholder="Enter your password"
-                  />
-                </div>
 
                 {loginError && (
                   <p className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">{loginError}</p>
                 )}
 
                 <button
-                  onClick={isRegister ? handleRegister : handleLogin}
+                  onClick={
+                    isRegister 
+                      ? handleRegister 
+                      : (loginMethod === "email" 
+                          ? handleLogin 
+                          : (!confirmationResult ? handleSendOTP : handleConfirmOTP))
+                  }
                   disabled={isLoading}
                   className="w-full px-8 py-3 bg-gradient-to-r from-green-600 to-blue-600 rounded-lg text-white font-semibold disabled:opacity-50 hover:shadow-lg transition"
                 >
-                  {isLoading ? "Processing..." : (isRegister ? "Register" : "Login")}
+                  {isLoading 
+                    ? "Processing..." 
+                    : (isRegister ? "Register" : (loginMethod === "email" ? "Login" : (!confirmationResult ? "Send OTP" : "Verify OTP")))}
                 </button>
 
                 {/* Divider */}
@@ -490,6 +590,7 @@ const Onboarding: React.FC = () => {
                         className="text-green-600 cursor-pointer font-semibold hover:underline"
                         onClick={() => {
                           setIsRegister(false);
+                          setLoginMethod("email");
                           setLoginError("");
                           setLoginEmail("");
                           setLoginPassword("");
@@ -523,7 +624,7 @@ const Onboarding: React.FC = () => {
           {currentStep === 2 && (
             <div className="space-y-6">
               <div className="text-center mb-8">
-                <User className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                <UserIcon className="h-12 w-12 text-green-600 mx-auto mb-4" />
                 <h2 className="text-3xl font-bold">Profile Setup</h2>
               </div>
 

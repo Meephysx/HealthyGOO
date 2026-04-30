@@ -16,18 +16,20 @@ import {
   updateDoc,
 } from "firebase/firestore";
 
+import type { User } from "../types";
+
 
 /* ===============================
    USER LOGS
 ================================ */
 
-export async function getUserProfile(uid: string) {
+export async function getUserProfile(uid: string): Promise<User | null> {
   if (!db) return null;
   const docRef = doc(db, "users", uid);
   const snapshot = await getDoc(docRef);
 
   if (snapshot.exists()) {
-    return { id: snapshot.id, ...snapshot.data() };
+    return { id: snapshot.id, ...snapshot.data() } as User;
   }
   return null;
 }
@@ -124,7 +126,12 @@ export const getOrCreateChatSession = async (userId: string) => {
 // Add a new message to the subcollection and update the parent doc
 export const addChatMessage = async (
   chatId: string,
-  message: { sender: "user" | "ai"; text: string }
+  message: { 
+    sender: "user" | "ai"; 
+    text: string;
+    mealPlan?: any;
+    workoutPlan?: any;
+  }
 ) => {
   if (!db) throw new Error("Firestore not initialized");
 

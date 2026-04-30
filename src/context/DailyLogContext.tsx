@@ -362,15 +362,21 @@ export const DailyLogProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (data.offline || !data.reply) throw new Error(data.reply || 'AI is offline.');
 
         const parsedPlan = parseJsonLike(data.reply);
-        if (!parsedPlan) throw new Error('Failed to parse AI response.');
+        if (!parsedPlan || typeof parsedPlan !== 'object') {
+          throw new Error('Failed to parse AI response. Please try again.');
+        }
 
         const aiFoods = normalizeAIMealPlan(parsedPlan);
+        if (aiFoods.length === 0) {
+          throw new Error('No meals generated. Please try again.');
+        }
+        
         const manualFoods = mealLog?.foods.filter(f => f.source === 'manual') || [];
         await updateMealLog([...manualFoods, ...aiFoods]);
 
     } catch (err: any) {
         console.error("AI Error:", err);
-        setAiError("Gagal menyusun menu AI. Silakan coba lagi.");
+        setAiError(err.message || "Gagal menyusun menu AI. Silakan coba lagi.");
     } finally {
         setIsGeneratingAI(false);
     }
@@ -461,9 +467,19 @@ export const DailyLogProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (data.offline || !data.reply) throw new Error(data.reply || 'AI is offline.');
 
         const parsedExercises = parseJsonLike(data.reply);
-        if (!Array.isArray(parsedExercises)) throw new Error('Invalid workout plan format.');
+        
+        // Validate that we got a proper array with exercise objects
+        if (!parsedExercises) {
+          throw new Error('AI response could not be parsed. Please try again.');
+        }
+        
+        // Ensure it's an array and has valid exercise data
+        const exercises = Array.isArray(parsedExercises) ? parsedExercises : [parsedExercises];
+        if (exercises.length === 0) {
+          throw new Error('No exercises generated. Please try again.');
+        }
 
-        const aiExercises: WorkoutExercise[] = parsedExercises.map((ex: any, idx: number) => ({
+        const aiExercises: WorkoutExercise[] = exercises.map((ex: any, idx: number) => ({
           id: `ai-ex-${idx}-${Date.now()}`,
           name: ex.name || 'Exercise',
           sets: ex.sets || '3x10',
@@ -476,7 +492,7 @@ export const DailyLogProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     } catch (err: any) {
         console.error("AI Workout Error:", err);
-        setAiError("Gagal menyusun rencana latihan. Silakan coba lagi.");
+        setAiError(err.message || "Gagal menyusun rencana latihan. Silakan coba lagi.");
     } finally {
         setIsGeneratingAI(false);
     }

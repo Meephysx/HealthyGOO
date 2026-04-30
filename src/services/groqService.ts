@@ -100,21 +100,39 @@ export const sendMessage = async (
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Backend API Error:", errorData);
+      let errorDetail = "";
+      try {
+        const errorData = await response.json();
+        errorDetail = JSON.stringify(errorData);
+      } catch (e) {
+        errorDetail = await response.text();
+      }
+      console.error("Backend API Error:", errorDetail);
       throw new Error(`Backend request failed with status ${response.status}`);
     }
 
-    const data: AIResponse = await response.json();
+    const text = await response.text();
+    console.log("AI Response raw:", text);
+    
+    let data: AIResponse;
+    
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error("Failed to parse AI Response JSON:", text);
+      throw new Error("Invalid JSON response from server");
+    }
 
     // The backend returns an object with a "reply" field.
     if (!data.reply) {
+      console.error("No reply field in data:", data);
       throw new Error("Invalid response format from backend");
     }
 
+    console.log("AI Response parsed:", data);
     return data;
   } catch (error) {
-    console.error("Failed to send message to backend:", error);
+    console.error("sendMessage error:", error);
     return {
       reply: "Sorry, I'm having trouble communicating with the server. Please try again later.",
       error: error instanceof Error ? error.message : "Unknown error"

@@ -39,7 +39,9 @@ const SYSTEM_PROMPTS = {
   Explore various Indonesian regional cuisines and international healthy options. 
   Rotate carb sources (sweet potato, cassava, corn, brown rice) and protein sources (fish, lean meat, plant-based).
 
-  CRITICAL SAFETY RULE: You MUST strictly adhere to the user's allergies and dietary restrictions. NEVER suggest food containing allergens specified by the user. Check for hidden ingredients (e.g., peanuts in sauces, shrimp paste in sambal).
+  CRITICAL SAFETY RULE: You MUST strictly adhere to the user's allergies, dietary restrictions, and specific food dislikes/preferences. 
+  NEVER suggest food containing allergens or ingredients the user explicitly said they don't like (e.g., if they hate fish, do not suggest any seafood). 
+  Check for hidden ingredients (e.g., peanuts in sauces, shrimp paste in sambal).
   
   For each item, explicitly mention the Menu Name, Calories (kcal), Protein (g), Carbs (g), and Fat (g).
   If the user requests JSON, provide ONLY JSON. Otherwise, format the output clearly using bullet points. Use Indonesian language.`,
@@ -110,9 +112,11 @@ function parseMealTextToPlan(text) {
   // --- JSON PARSING (Prioritas) ---
   try {
     // Cari blok JSON (dimulai { atau [) dan ambil sampai akhir blok
-    const jsonMatch = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    let jsonMatch = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
     if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
+      // Bersihkan kemungkinan karakter aneh atau markdown yang terbawa
+      let cleanJson = jsonMatch[0].replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(cleanJson);
       console.log('[backend] JSON Meal Plan parsed successfully');
       return parsed;
     }
@@ -121,7 +125,7 @@ function parseMealTextToPlan(text) {
   }
 
   // Regex untuk menangkap section (Fallback jika JSON gagal)
-  const labels = ['Sarapan', 'Makan\\s*Siang', 'Makan\\s*Malam', 'Snack', 'Camilan'];
+  const labels = ['Sarapan', 'Makan\\s*Siang', 'Makan\\s*Malam', 'Snack', 'Camilan', 'Breakfast', 'Lunch', 'Dinner'];
   const labelPattern = labels.join('|');
   const sectionRegex = new RegExp(`(?:\\*{0,2}\\s*)?(${labelPattern})(?:\\*{0,2}\\s*)([\\s\\S]*?)(?=(?:${labelPattern})|$)`, 'ig');
 
@@ -133,9 +137,9 @@ function parseMealTextToPlan(text) {
     
     // Normalisasi key
     let key = 'snacks';
-    if (/sarapan/i.test(rawLabel)) key = 'Sarapan';
-    else if (/siang/i.test(rawLabel)) key = 'MakanSiang';
-    else if (/malam/i.test(rawLabel)) key = 'MakanMalam';
+    if (/sarapan|breakfast/i.test(rawLabel)) key = 'Sarapan';
+    else if (/siang|lunch/i.test(rawLabel)) key = 'MakanSiang';
+    else if (/malam|dinner/i.test(rawLabel)) key = 'MakanMalam';
 
     // Ekstrak data
     let menu = content.split('\n')[0].replace(/^[:\-\*]+/, '').trim();
@@ -308,6 +312,8 @@ async function aiHandler(req, res) {
       if (plan) {
         finalResponse.structured_meal_plan = plan;
         console.log('[backend] Meal Plan Parsed Successfully');
+      } else {
+        console.log('[backend] Meal Plan parsing failed - no valid plan found');
       }
     }
 
@@ -317,9 +323,12 @@ async function aiHandler(req, res) {
       if (plan) {
         finalResponse.structured_workout_plan = plan;
         console.log('[backend] Workout Plan Parsed Successfully');
+      } else {
+        console.log('[backend] Workout Plan parsing failed - no valid plan found');
       }
     }
     
+    console.log('[backend] Sending response:', JSON.stringify(finalResponse).substring(0, 200));
     res.json(finalResponse);
 
   } catch (err) {

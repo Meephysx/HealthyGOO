@@ -18,6 +18,7 @@ export interface User {
   createdAt: Date;
   xp?: number;
   rank?: string;
+  profileCompleted?: boolean;
 }
 
 export interface Food {

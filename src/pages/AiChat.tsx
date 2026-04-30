@@ -137,12 +137,32 @@ const AiChat = () => {
       // Get AI response using the updated message list and user profile
       const aiResponse: AIResponse = await sendMessage(messagesForApi, userProfile);
       
-      const aiMessage = { 
+      // Only include fields with defined values to avoid Firestore error
+      const aiMessage: any = { 
         sender: "ai" as const, 
         text: aiResponse.reply,
-        mealPlan: aiResponse.structured_meal_plan,
-        workoutPlan: aiResponse.structured_workout_plan,
       };
+      
+      // Only add mealPlan if it has valid content (not empty object)
+      if (aiResponse.structured_meal_plan && Object.keys(aiResponse.structured_meal_plan).length > 0) {
+        // Check if mealPlan has at least one meal with actual content
+        const hasValidMeal = Object.values(aiResponse.structured_meal_plan).some(
+          (meal: any) => meal && typeof meal === 'object' && meal.menu && meal.menu !== '-'
+        );
+        if (hasValidMeal) {
+          aiMessage.mealPlan = aiResponse.structured_meal_plan;
+        }
+      }
+      
+      // Only add workoutPlan if it has valid content
+      if (aiResponse.structured_workout_plan && Object.keys(aiResponse.structured_workout_plan).length > 0) {
+        // Check if workoutPlan has exercises
+        const hasValidWorkout = aiResponse.structured_workout_plan.exercises && 
+          aiResponse.structured_workout_plan.exercises.length > 0;
+        if (hasValidWorkout) {
+          aiMessage.workoutPlan = aiResponse.structured_workout_plan;
+        }
+      }
 
       // Add AI message to Firestore
       await addChatMessage(chatSession.id, aiMessage);

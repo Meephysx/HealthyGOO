@@ -29,6 +29,7 @@ async function saveUserIfNotExists(user: User, provider = "email") {
       await setDoc(ref, {
         uid: user.uid,
         name: user.displayName || "",
+        fullname: user.displayName || "",
         email: user.email || "",
         phone: user.phoneNumber || "",
         provider,
@@ -38,6 +39,7 @@ async function saveUserIfNotExists(user: User, provider = "email") {
       // Update existing user with latest auth data (name, email from Google)
       await setDoc(ref, {
         name: user.displayName || "",
+        fullname: user.displayName || "",
         email: user.email || "",
         phone: user.phoneNumber || "",
         provider,
