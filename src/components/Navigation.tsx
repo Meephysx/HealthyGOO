@@ -38,19 +38,30 @@ const Navigation: React.FC = () => {
             </span>
           </Link>
 
-          {/* SISI KANAN: Icon Search (Mobile) & Menu (Desktop) */}
+          {/* SISI KANAN: Icon Search & Leaderboard (Mobile) + Menu (Desktop) */}
           <div className="flex items-center space-x-4">
-            {/* Icon Search di Kanan Atas (Hanya muncul di Mobile) */}
-            <Link 
-              to="/food-search" 
-              className={`md:hidden p-2 rounded-full transition-colors ${
-                location.pathname === '/food-search' 
-                ? 'bg-green-50 text-green-600' 
-                : 'text-gray-500'
-              }`}
-            >
-              <Search className="h-6 w-6" />
-            </Link>
+            <div className="flex items-center space-x-2 md:hidden">
+              <Link 
+                to="/food-search" 
+                className={`p-2 rounded-full transition-colors ${
+                  location.pathname === '/food-search' 
+                  ? 'bg-green-50 text-green-600' 
+                  : 'text-gray-500'
+                }`}
+              >
+                <Search className="h-6 w-6" />
+              </Link>
+              <Link 
+                to="/leaderboard" 
+                className={`p-2 rounded-full transition-colors ${
+                  location.pathname === '/leaderboard' 
+                  ? 'bg-green-50 text-green-600' 
+                  : 'text-gray-500'
+                }`}
+              >
+                <Trophy className="h-6 w-6" />
+              </Link>
+            </div>
 
             {/* Desktop Menu */}
             <div className="hidden md:flex space-x-6">
@@ -82,23 +93,25 @@ const Navigation: React.FC = () => {
       {/* BOTTOM NAVIGATION (Hanya 5 Item) */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 pb-safe overflow-x-auto">
         <div className="flex justify-around items-center h-16">
-          {navItems.map(({ path, icon: Icon, label }) => {
-            const isActive = location.pathname === path;
-            return (
-              <Link
-                key={path}
-                to={path}
-                className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${
-                  isActive ? 'text-green-600' : 'text-gray-400'
-                }`}
-              >
-                <Icon 
-                  className={`h-5 w-5 ${isActive ? 'scale-110' : ''}`} 
-                  fill={isActive ? "currentColor" : "none"}
-                />
-                <span className="text-[10px] font-medium">{label}</span>
-              </Link>
-            );
+          {navItems
+            .filter(item => item.path !== '/leaderboard')
+            .map(({ path, icon: Icon, label }) => {
+              const isActive = location.pathname === path;
+              return (
+                <Link
+                  key={path}
+                  to={path}
+                  className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${
+                    isActive ? 'text-green-600' : 'text-gray-400'
+                  }`}
+                >
+                  <Icon 
+                    className={`h-5 w-5 ${isActive ? 'scale-110' : ''}`} 
+                    fill={isActive ? "currentColor" : "none"}
+                  />
+                  <span className="text-[10px] font-medium">{label}</span>
+                </Link>
+              );
           })}
         </div>
       </div>

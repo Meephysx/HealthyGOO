@@ -102,17 +102,13 @@ const Dashboard: React.FC = () => {
         {/* Header */}
         <div className="mb-12">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900">
-                Selamat Datang, {user.name}! 👋
+            <div className="flex flex-col md:flex-row md:items-baseline gap-2">
+              <h1 className="text-2xl font-light text-slate-500 tracking-tight">
+                Halo, <span className="font-semibold text-slate-900">{user.name}</span>.
               </h1>
-              <p className="text-gray-500 mt-2">
-                {currentDate.toLocaleDateString('id-ID', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
+              <span className="hidden md:inline text-slate-300">/</span>
+              <p className="text-sm font-medium text-slate-400">
+                Semangat hari ini — {currentDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
               </p>
             </div>
             <div className="hidden md:block text-right">

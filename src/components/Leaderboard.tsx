@@ -17,6 +17,7 @@ interface LeaderboardUser {
 const Leaderboard: React.FC = () => {
   const [seasonUsers, setSeasonUsers] = useState<LeaderboardUser[]>([]);
   const [allTimeUsers, setAllTimeUsers] = useState<LeaderboardUser[]>([]);
+  const [selectedTab, setSelectedTab] = useState<'season' | 'allTime'>('season');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -65,7 +66,6 @@ const Leaderboard: React.FC = () => {
   const getRankStyle = (index: number) => {
     switch (index) {
       case 0: return { icon: <Crown className="text-yellow-400 fill-yellow-400" size={24} />, bg: 'bg-yellow-500/10 border-yellow-500/50' };
-      case 0: return { icon: <Crown className="text-yellow-400 fill-yellow-400" size={18} />, bg: 'bg-yellow-500/5 border-yellow-500/20' };
       case 1: return { icon: <Medal className="text-gray-300 fill-gray-300" size={18} />, bg: 'bg-gray-400/5 border-gray-400/20' };
       case 2: return { icon: <Medal className="text-amber-600 fill-amber-600" size={18} />, bg: 'bg-amber-700/5 border-amber-700/20' };
       default: return { icon: <span className="text-slate-400 font-bold w-5 text-[10px]">{index + 1}</span>, bg: 'bg-white border-gray-100' };
@@ -161,10 +161,41 @@ const Leaderboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Grid: Season vs All-Time */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <RenderList users={seasonUsers} title="Top Season" type="season" />
-          <RenderList users={allTimeUsers} title="All-Time Legends" type="allTime" />
+        {/* Main Content: Season / All-Time Toggle */}
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">Leaderboard</h2>
+            <p className="text-sm text-slate-500">Pilih antara Top Season atau All-Time Legends untuk melihat ranking yang sesuai.</p>
+          </div>
+
+          <div className="flex flex-wrap gap-2 rounded-3xl bg-slate-100 p-2">
+            <button
+              type="button"
+              onClick={() => setSelectedTab('season')}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                selectedTab === 'season' ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:bg-white'
+              }`}
+            >
+              Top Season
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedTab('allTime')}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                selectedTab === 'allTime' ? 'bg-violet-600 text-white' : 'text-slate-600 hover:bg-white'
+              }`}
+            >
+              All-Time Legends
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+          <RenderList
+            users={selectedTab === 'season' ? seasonUsers : allTimeUsers}
+            title={selectedTab === 'season' ? 'Top Season' : 'All-Time Legends'}
+            type={selectedTab}
+          />
         </div>
 
         {/* Footer Info */}
