@@ -496,7 +496,7 @@ const Progress: React.FC = () => {
               </div>
 
               {/* Rank Cards */}
-              <div className="grid grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                 {RANK_DATA.map((rank, idx) => {
                   const isUnlocked = isRankUnlocked(rank.id, userProfile?.xp || 0);
                   const isCurrent = rank.id === getRankFromXP(userProfile?.xp || 0);
@@ -504,7 +504,7 @@ const Progress: React.FC = () => {
                   return (
                     <div 
                       key={rank.id}
-                      className={`relative p-4 rounded-2xl overflow-hidden transition-all duration-300 ${
+                      className={`relative p-3 sm:p-4 rounded-2xl overflow-hidden transition-all duration-300 ${
                         isCurrent 
                           ? `bg-gradient-to-b from-emerald-500/20 to-transparent border-2 border-emerald-400/50 ${getRankAnimation(rank.id, true)}` 
                           : isUnlocked 
@@ -524,41 +524,46 @@ const Progress: React.FC = () => {
                       {/* Status Indicator */}
                       <div className="absolute -top-2 -right-2">
                         {isCurrent ? (
-                          <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg">
-                            <Star size={12} className="text-white fill-white" />
+                          <div className="w-5 sm:w-6 h-5 sm:h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                            <Star size={10} className="text-white fill-white" />
                           </div>
                         ) : isUnlocked ? (
-                          <div className="w-6 h-6 bg-slate-700 rounded-full flex items-center justify-center">
-                            <CheckCircle size={12} className="text-slate-400" />
+                          <div className="w-5 sm:w-6 h-5 sm:h-6 bg-slate-700 rounded-full flex items-center justify-center">
+                            <CheckCircle size={10} className="text-slate-400" />
                           </div>
                         ) : (
-                          <div className="w-6 h-6 bg-slate-800 rounded-full flex items-center justify-center">
-                            <Lock size={10} className="text-slate-600" />
+                          <div className="w-5 sm:w-6 h-5 sm:h-6 bg-slate-800 rounded-full flex items-center justify-center">
+                            <Lock size={8} className="text-slate-600" />
                           </div>
                         )}
                       </div>
 
                       {/* Rank Icon */}
-                      <div className={`flex justify-center mb-3 transition-transform`}>
-                        <div className={`p-3 rounded-full ${rank.bgColor} ${isUnlocked ? '' : 'grayscale opacity-50'}`}>
-                          {rank.icon}
+                      <div className={`flex justify-center mb-2 sm:mb-3 transition-transform`}>
+                        <div className={`p-2 sm:p-3 rounded-full ${rank.bgColor} ${isUnlocked ? '' : 'grayscale opacity-50'}`}>
+                          <div className="sm:hidden">
+                            {React.cloneElement(rank.icon, { size: 18 })}
+                          </div>
+                          <div className="hidden sm:block">
+                            {rank.icon}
+                          </div>
                         </div>
                       </div>
 
                       {/* Rank Name */}
-                      <p className={`text-center font-bold text-sm capitalize ${isCurrent ? 'text-white' : isUnlocked ? 'text-slate-300' : 'text-slate-500'}`}>
+                      <p className={`text-center font-bold text-xs sm:text-sm capitalize line-clamp-2 ${isCurrent ? 'text-white' : isUnlocked ? 'text-slate-300' : 'text-slate-500'}`}>
                         {rank.name}
                       </p>
 
-                      {/* XP Range */}
-                      <p className={`text-center text-xs mt-1 ${isCurrent ? 'text-emerald-400' : 'text-slate-500'}`}>
+                      {/* XP Range - Hidden on mobile, shown on sm+ */}
+                      <p className={`text-center text-[10px] mt-1 hidden sm:block ${isCurrent ? 'text-emerald-400' : 'text-slate-500'}`}>
                         {rank.minXP}+ XP
                       </p>
 
-                      {/* Rewards Info */}
-                      <div className="mt-3 pt-3 border-t border-slate-700/50">
-                        <p className="text-[10px] text-slate-500 text-center">Rewards</p>
-                        <p className="text-xs text-center text-slate-400 mt-1">{rank.rewards}</p>
+                      {/* Rewards Info - Simplified on mobile */}
+                      <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-700/50">
+                        <p className="text-[9px] sm:text-[10px] text-slate-500 text-center hidden sm:block">Rewards</p>
+                        <p className="text-[9px] sm:text-xs text-center text-slate-400 line-clamp-2">{rank.rewards}</p>
                       </div>
                     </div>
                   );
@@ -566,37 +571,37 @@ const Progress: React.FC = () => {
               </div>
 
               {/* XP Earning Tips */}
-              <div className="mt-8 p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                <p className="text-sm font-semibold text-white mb-3 flex items-center">
+              <div className="mt-6 sm:mt-8 p-3 sm:p-4 bg-slate-800/50 rounded-xl border border-slate-700">
+                <p className="text-xs sm:text-sm font-semibold text-white mb-3 flex items-center">
                   <Zap size={16} className="text-yellow-400 mr-2" />
                   Cara Mendapatkan XP
                 </p>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                <div className="grid grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm">
+                  <div className="flex flex-col items-center sm:flex-row sm:items-center gap-2 sm:gap-2">
+                    <div className="w-8 h-8 sm:w-8 sm:h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                       <Utensils size={16} className="text-emerald-400" />
                     </div>
-                    <div>
-                      <p className="text-slate-300">Makan</p>
-                      <p className="text-xs text-slate-500">+10 XP</p>
+                    <div className="text-center sm:text-left">
+                      <p className="text-slate-300 text-[10px] sm:text-sm">Makan</p>
+                      <p className="text-[9px] sm:text-xs text-slate-500">+10 XP</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                  <div className="flex flex-col items-center sm:flex-row sm:items-center gap-2 sm:gap-2">
+                    <div className="w-8 h-8 sm:w-8 sm:h-8 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                       <Dumbbell size={16} className="text-orange-400" />
                     </div>
-                    <div>
-                      <p className="text-slate-300">Workout</p>
-                      <p className="text-xs text-slate-500">+50 XP</p>
+                    <div className="text-center sm:text-left">
+                      <p className="text-slate-300 text-[10px] sm:text-sm">Workout</p>
+                      <p className="text-[9px] sm:text-xs text-slate-500">+50 XP</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                  <div className="flex flex-col items-center sm:flex-row sm:items-center gap-2 sm:gap-2">
+                    <div className="w-8 h-8 sm:w-8 sm:h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                       <Scale size={16} className="text-blue-400" />
                     </div>
-                    <div>
-                      <p className="text-slate-300">Progress</p>
-                      <p className="text-xs text-slate-500">+20 XP</p>
+                    <div className="text-center sm:text-left">
+                      <p className="text-slate-300 text-[10px] sm:text-sm">Progress</p>
+                      <p className="text-[9px] sm:text-xs text-slate-500">+20 XP</p>
                     </div>
                   </div>
                 </div>
