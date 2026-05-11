@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { db, auth } from '../firebase';
-import { doc, onSnapshot, addDoc, updateDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, addDoc, updateDoc, collection, serverTimestamp, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
 import { getDateKey, saveUserLog } from '../services/logger';
 
@@ -24,6 +24,7 @@ interface UserProfile {
   totalXp?: number;
   highestRank?: string;
   rank?: string;
+  lastInactivityPenalty?: any; // Timestamp from Firestore
 }
 
 export interface FoodItem {
@@ -112,19 +113,25 @@ interface DailyLogContextType {
 }
 
 // --- HELPER ---
+// Updated Rank Requirements - Much More Challenging (Especially Bronze→Silver)
 export const getRankFromXP = (xp: number): string => {
-  if (xp >= 6000) return 'Shadow Monarch';
-  if (xp >= 3000) return 'platinum';
-  if (xp >= 1500) return 'gold';
-  if (xp >= 500) return 'silver';
+  if (xp >= 15000) return 'Shadow Monarch';
+  if (xp >= 7000) return 'platinum';
+  if (xp >= 3000) return 'gold';
+  if (xp >= 1000) return 'silver';
   return 'bronze';
 };
 
+// Reduced XP Rewards - Slower Progression
 const XP_REWARDS = {
-  MEAL: 10,
-  WORKOUT: 50,
-  PROGRESS: 20
+  MEAL: 5,
+  WORKOUT: 25,
+  PROGRESS: 10
 };
+
+// Inactivity Penalty System Constants
+const INACTIVITY_PENALTY = 100; // XP to deduct
+const INACTIVITY_THRESHOLD_DAYS = 2; // Days without workout
 
 const normalizeAIMealPlan = (plan: any): FoodItem[] => {
     const MEAL_TYPES: MealType[] = ['Sarapan', 'MakanSiang', 'MakanMalam', 'snacks'];
@@ -156,6 +163,67 @@ const normalizeAIMealPlan = (plan: any): FoodItem[] => {
     });
     return foods;
   };
+
+// --- INACTIVITY PENALTY SYSTEM ---
+/**
+ * Check if user has been inactive (no workout for 2+ days)
+ * and apply penalty if needed
+ */
+const checkAndApplyInactivityPenalty = async (userProfile: UserProfile, workoutLog: WorkoutLog | null) => {
+  if (!auth.currentUser || !userProfile) return;
+
+  try {
+    // Get all workout logs for the user
+    const logsRef = collection(db, 'workout_logs');
+    const q = query(logsRef, where('userId', '==', auth.currentUser.uid), orderBy('date', 'desc'), limit(10));
+    const logsSnap = await getDocs(q);
+
+    if (logsSnap.empty) {
+      // User has never worked out, apply penalty
+      const penaltyXP = Math.max(0, (userProfile.xp || 0) - INACTIVITY_PENALTY);
+      const penaltyTotalXP = Math.max(0, (userProfile.totalXp || 0) - INACTIVITY_PENALTY);
+      
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        xp: penaltyXP,
+        totalXp: penaltyTotalXP,
+        rank: getRankFromXP(penaltyXP),
+        lastInactivityPenalty: serverTimestamp()
+      });
+      return;
+    }
+
+    // Check the most recent workout date
+    const mostRecentLog = logsSnap.docs[0]?.data();
+    if (!mostRecentLog) return;
+
+    const lastWorkoutDate = new Date(mostRecentLog.date);
+    const today = new Date();
+    const daysDifference = Math.floor((today.getTime() - lastWorkoutDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    // If 2+ days have passed since last workout, apply penalty
+    if (daysDifference >= INACTIVITY_THRESHOLD_DAYS) {
+      // Check if penalty was already applied recently (to avoid duplicate penalties)
+      const lastPenaltyTime = userProfile.lastInactivityPenalty ? new Date(userProfile.lastInactivityPenalty).getTime() : 0;
+      const penaltyExpiry = 24 * 60 * 60 * 1000; // 24 hours between penalties
+      
+      if (Date.now() - lastPenaltyTime >= penaltyExpiry) {
+        const penaltyXP = Math.max(0, (userProfile.xp || 0) - INACTIVITY_PENALTY);
+        const penaltyTotalXP = Math.max(0, (userProfile.totalXp || 0) - INACTIVITY_PENALTY);
+
+        console.log(`Inactivity Penalty Applied: -${INACTIVITY_PENALTY} XP for ${daysDifference} days of no workout`);
+        
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+          xp: penaltyXP,
+          totalXp: penaltyTotalXP,
+          rank: getRankFromXP(penaltyXP),
+          lastInactivityPenalty: serverTimestamp()
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Error checking inactivity penalty:", error);
+  }
+};
 
 // --- CONTEXT CREATION ---
 const DailyLogContext = createContext<DailyLogContextType | undefined>(undefined);
@@ -267,6 +335,14 @@ export const DailyLogProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return acc;
     }, initial);
   }, [mealLog]);
+
+  // --- INACTIVITY CHECK EFFECT ---
+  // Check for inactivity when user profile updates
+  useEffect(() => {
+    if (userProfile && auth.currentUser) {
+      checkAndApplyInactivityPenalty(userProfile, workoutLog);
+    }
+  }, [userProfile?.xp, auth.currentUser?.uid]);
 
   const burnedCalories = useMemo(() => workoutLog?.totalCalories || 0, [workoutLog]);
 

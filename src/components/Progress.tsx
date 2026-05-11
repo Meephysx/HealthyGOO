@@ -96,11 +96,11 @@ const Progress: React.FC = () => {
 
   // --- XP & RANK SYSTEM HELPERS ---
   const RANK_DATA = [
-    { id: 'bronze', name: 'Bronze', minXP: 0, maxXP: 499, icon: <Medal size={24} className="text-amber-700" />, bgColor: 'bg-amber-900/30', rewards: 'Basic Features' },
-    { id: 'silver', name: 'Silver', minXP: 500, maxXP: 1499, icon: <Medal size={24} className="text-gray-300" />, bgColor: 'bg-gray-400/30', rewards: 'Priority Support' },
-    { id: 'gold', name: 'Gold', minXP: 1500, maxXP: 2999, icon: <Trophy size={24} className="text-yellow-500" />, bgColor: 'bg-yellow-500/30', rewards: 'AI Recommendations' },
-    { id: 'platinum', name: 'Platinum', minXP: 3000, maxXP: 5999, icon: <Award size={24} className="text-cyan-400" />, bgColor: 'bg-cyan-400/30', rewards: 'Advanced Analytics' },
-    { id: 'Shadow Monarch', name: 'Shadow Monarch', minXP: 6000, maxXP: 99999, icon: <Crown size={24} className="text-purple-400" />, bgColor: 'bg-purple-500/30', rewards: 'VIP Access' },
+    { id: 'bronze', name: 'Bronze', minXP: 0, maxXP: 999, icon: <Medal size={24} className="text-amber-700" />, bgColor: 'bg-amber-900/30' },
+    { id: 'silver', name: 'Silver', minXP: 1000, maxXP: 2999, icon: <Medal size={24} className="text-gray-300" />, bgColor: 'bg-gray-400/30' },
+    { id: 'gold', name: 'Gold', minXP: 3000, maxXP: 6999, icon: <Trophy size={24} className="text-yellow-500" />, bgColor: 'bg-yellow-500/30' },
+    { id: 'platinum', name: 'Platinum', minXP: 7000, maxXP: 14999, icon: <Award size={24} className="text-cyan-400" />, bgColor: 'bg-cyan-400/30' },
+    { id: 'Shadow Monarch', name: 'Shadow Monarch', minXP: 15000, maxXP: 99999, icon: <Crown size={24} className="text-purple-400" />, bgColor: 'bg-purple-500/30' },
   ];
 
   const getRankIcon = (rank: string) => {
@@ -560,11 +560,7 @@ const Progress: React.FC = () => {
                         {rank.minXP}+ XP
                       </p>
 
-                      {/* Rewards Info - Simplified on mobile */}
-                      <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-700/50">
-                        <p className="text-[9px] sm:text-[10px] text-slate-500 text-center hidden sm:block">Rewards</p>
-                        <p className="text-[9px] sm:text-xs text-center text-slate-400 line-clamp-2">{rank.rewards}</p>
-                      </div>
+
                     </div>
                   );
                 })}

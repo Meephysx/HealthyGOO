@@ -290,11 +290,11 @@ const Profile: React.FC = () => {
 
   // --- XP & RANK SYSTEM HELPERS ---
   const RANK_DATA = [
-    { id: 'bronze', name: 'Bronze', minXP: 0, maxXP: 499, icon: <Medal size={24} className="text-amber-700" />, bgColor: 'bg-amber-900/30', rewards: 'Basic Features', gradient: 'from-amber-700 to-amber-900' },
-    { id: 'silver', name: 'Silver', minXP: 500, maxXP: 1499, icon: <Medal size={24} className="text-gray-300" />, bgColor: 'bg-gray-400/30', rewards: 'Priority Support', gradient: 'from-gray-400 to-gray-600' },
-    { id: 'gold', name: 'Gold', minXP: 1500, maxXP: 2999, icon: <Trophy size={24} className="text-yellow-500" />, bgColor: 'bg-yellow-500/30', rewards: 'AI Recommendations', gradient: 'from-yellow-400 to-yellow-600' },
-    { id: 'platinum', name: 'Platinum', minXP: 3000, maxXP: 5999, icon: <Award size={24} className="text-cyan-400" />, bgColor: 'bg-cyan-400/30', rewards: 'Advanced Analytics', gradient: 'from-cyan-400 to-cyan-600' },
-    { id: 'Shadow Monarch', name: 'Shadow Monarch', minXP: 6000, maxXP: 99999, icon: <Crown size={24} className="text-purple-400" />, bgColor: 'bg-purple-500/30', rewards: 'VIP Access', gradient: 'from-purple-400 to-purple-600' },
+    { id: 'bronze', name: 'Bronze', minXP: 0, maxXP: 999, icon: <Medal size={24} className="text-amber-700" />, bgColor: 'bg-amber-900/30', gradient: 'from-amber-700 to-amber-900' },
+    { id: 'silver', name: 'Silver', minXP: 1000, maxXP: 2999, icon: <Medal size={24} className="text-gray-300" />, bgColor: 'bg-gray-400/30', gradient: 'from-gray-400 to-gray-600' },
+    { id: 'gold', name: 'Gold', minXP: 3000, maxXP: 6999, icon: <Trophy size={24} className="text-yellow-500" />, bgColor: 'bg-yellow-500/30', gradient: 'from-yellow-400 to-yellow-600' },
+    { id: 'platinum', name: 'Platinum', minXP: 7000, maxXP: 14999, icon: <Award size={24} className="text-cyan-400" />, bgColor: 'bg-cyan-400/30', gradient: 'from-cyan-400 to-cyan-600' },
+    { id: 'Shadow Monarch', name: 'Shadow Monarch', minXP: 15000, maxXP: 99999, icon: <Crown size={24} className="text-purple-400" />, bgColor: 'bg-purple-500/30', gradient: 'from-purple-400 to-purple-600' },
   ];
 
   const getRankIcon = (rank: string) => {
