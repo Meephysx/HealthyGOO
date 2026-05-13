@@ -153,7 +153,6 @@ const normalizeExercises = (rawExercises: any, userWeight: number, location: 'ho
 
 const AIWorkoutPlan: React.FC = () => {
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
-  const [isGenerating, setIsGenerating] = useState(true);
   const [completed, setCompleted] = useState<CompletedExercise[]>([]);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -177,9 +176,7 @@ const AIWorkoutPlan: React.FC = () => {
   useEffect(() => {
     setUser(loadUserData());
     const loadInitialData = async () => {
-      setIsGenerating(true);
       // Start with loading state
-      setIsGenerating(false);
     };
     loadInitialData();
   }, []);
@@ -273,8 +270,7 @@ const AIWorkoutPlan: React.FC = () => {
   };
 
   const handleGeneratePlan = () => {
-    setIsGenerating(true);
-    generateAIWorkoutPlan(workoutLocation, selectedSplit).finally(() => setIsGenerating(false));
+    generateAIWorkoutPlan(workoutLocation, selectedSplit);
   };
   
   // Hapus baris ini karena kita sudah mengambil burnedCalories dari useDailyLog()
@@ -284,18 +280,21 @@ const AIWorkoutPlan: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 py-8 pb-24">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* --- HEADER --- */}
-        <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
-          <div className="space-y-4 w-full md:w-auto">
-            <div className="text-center md:text-left">
-              <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3 justify-center md:justify-start">
-                <span className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-200"><Dumbbell className="w-6 h-6" /></span>Workout Plan
-              </h1>
-              <p className="text-gray-500 mt-1 text-sm font-medium">Personalized for your goals & body type</p>
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-10 gap-6">
+          <div className="space-y-6 w-full lg:w-auto">
+            <div className="flex flex-col items-center md:items-start">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-600 p-2.5 rounded-2xl text-white shadow-xl shadow-blue-200">
+                  <Dumbbell className="w-6 h-6" />
+                </div>
+                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Workout Plan</h1>
+              </div>
+              <p className="text-gray-500 mt-2 text-sm font-medium ml-1">Personalized for your goals & body type</p>
             </div>
-            
-            <div className="flex flex-wrap gap-4 justify-center md:justify-start items-center">
+
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
               {/* Lokasi Selector */}
-              <div className="flex bg-white p-1 rounded-xl border border-gray-200 shadow-sm">
+              <div className="flex bg-white p-1.5 rounded-2xl border border-gray-200 shadow-sm w-full sm:w-auto">
                 <button onClick={() => handleLocationChange('home')} className={`flex items-center px-4 py-2 rounded-lg text-xs font-bold transition-all ${workoutLocation === 'home' ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
                   <Home size={14} className="mr-1.5" /> Home
                 </button>
@@ -305,18 +304,28 @@ const AIWorkoutPlan: React.FC = () => {
               </div>
 
               {/* Split Selector */}
-              <div className="flex gap-1.5">
+              <div className="flex bg-white p-1.5 rounded-2xl border border-gray-200 shadow-sm w-full sm:w-auto overflow-x-auto no-scrollbar">
                 {['Push', 'Pull', 'Legs', 'Full Body'].map((split) => (
-                  <button key={split} onClick={() => setSelectedSplit(split)} className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${selectedSplit === split ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}>{split}</button>
+                  <button 
+                    key={split} 
+                    onClick={() => setSelectedSplit(split)} 
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                      selectedSplit === split 
+                      ? 'bg-blue-600 text-white shadow-sm' 
+                      : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    {split}
+                  </button>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="w-full md:w-auto">
-            <button onClick={handleGeneratePlan} disabled={isGenerating} className="w-full flex items-center justify-center px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold shadow-lg shadow-blue-200 hover:shadow-blue-300 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
-              {isGenerating ? <Loader className="w-5 h-5 mr-2 animate-spin" /> : <RefreshCw className="w-5 h-5 mr-2" />}
-              {isGenerating ? "Generating..." : "New Plan"}
+          <div className="w-full lg:w-auto">
+            <button onClick={handleGeneratePlan} disabled={isGeneratingAI} className="w-full flex items-center justify-center px-8 py-4 rounded-2xl bg-gray-900 text-white font-bold shadow-xl hover:bg-gray-800 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+              {isGeneratingAI ? <Loader className="w-5 h-5 mr-2 animate-spin" /> : <RefreshCw className="w-5 h-5 mr-2" />}
+              {isGeneratingAI ? "Generating..." : "Generate Plan"}
             </button>
           </div>
         </div>
@@ -324,7 +333,7 @@ const AIWorkoutPlan: React.FC = () => {
         {error && <div className="bg-red-50 text-red-600 p-4 rounded-2xl mb-6 text-sm border border-red-100 flex items-center gap-3"><Info className="w-5 h-5 shrink-0" />{error}</div>}
 
         {/* --- MAIN CONTENT --- */}
-        {isGenerating ? (
+        {isGeneratingAI ? (
             <div className="text-center py-20"><div className="relative w-20 h-20 mx-auto mb-6"><div className="absolute inset-0 border-4 border-gray-100 rounded-full"></div><div className="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div><Dumbbell className="absolute inset-0 m-auto text-blue-500 w-8 h-8 animate-pulse" /></div><h3 className="text-xl font-bold text-gray-900">Crafting your workout...</h3><p className="text-gray-500 mt-2">Analyzing your profile and goals</p></div>
         ) : workoutPlan ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -383,7 +392,10 @@ const AIWorkoutPlan: React.FC = () => {
             <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-500"><Dumbbell className="w-10 h-10" /></div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">Ready to Sweat?</h3>
             <p className="text-gray-500 mb-8">Select your preferred location and let AI generate a personalized workout plan.</p>
-            <button onClick={() => generateAIWorkoutPlan(workoutLocation)} className="px-8 py-4 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:shadow-blue-300 hover:-translate-y-1 transition-all">Generate First Plan</button>
+            <button onClick={handleGeneratePlan} disabled={isGeneratingAI} className="mx-auto px-8 py-4 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:shadow-blue-300 hover:-translate-y-1 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+              {isGeneratingAI ? <Loader className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
+              {isGeneratingAI ? "Generating..." : "Generate First Plan"}
+            </button>
           </div>
         )}
       </div>
