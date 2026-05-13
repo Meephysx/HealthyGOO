@@ -34,7 +34,7 @@ import {
   updateProfile,
   sendEmailVerification,
 } from "firebase/auth";
-import type { ConfirmationResult, User as FirebaseUser } from "firebase/auth";
+import type { User as FirebaseUser } from "firebase/auth";
 import authService from "../services/authService";
 import type { User as AppUser } from "../types";
 
@@ -45,7 +45,6 @@ const Onboarding: React.FC = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [isRegister, setIsRegister] = useState(false);
-  const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -64,9 +63,6 @@ const Onboarding: React.FC = () => {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [otp, setOtp] = useState("");
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   const totalSteps = 4;
 
@@ -240,58 +236,6 @@ const Onboarding: React.FC = () => {
     }
   };
 
-  const handleSendOTP = async () => {
-    setIsLoading(true);
-    setLoginError("");
-    try {
-      const result = await authService.signInWithPhone(phoneNumber);
-      setConfirmationResult(result);
-    } catch (err: any) {
-      console.error("Send OTP Error:", err);
-      setLoginError("Gagal mengirim OTP. Pastikan nomor telepon benar (format: +62...)");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleConfirmOTP = async () => {
-    if (!confirmationResult) return;
-    setIsLoading(true);
-    setLoginError("");
-    try {
-      const user = await authService.confirmPhone(confirmationResult, otp);
-      const userProfile = await getUserProfile(user.uid);
-      const userEmail = user.email || '';
-      if (!userProfile) {
-        const newProfile = {
-          uid: user.uid,
-          fullname: user.displayName || formData.name || "",
-          name: user.displayName || formData.name || "",
-          email: userEmail,
-          phone: user.phoneNumber,
-          createdAt: new Date().toISOString(),
-        };
-        await setDoc(doc(db, "users", user.uid), newProfile);
-        localStorage.setItem("user", JSON.stringify(newProfile));
-      } else {
-        // Update localStorage with latest data from Auth
-        const userData = {
-          ...userProfile,
-          name: user.displayName || userProfile.name || userProfile.fullname || formData.name || '',
-          fullname: user.displayName || userProfile.name || userProfile.fullname || formData.name || '',
-          email: userEmail || userProfile.email || '',
-        };
-        localStorage.setItem("user", JSON.stringify(userData));
-      }
-      navigate("/dashboard");
-    } catch (err: any) {
-      console.error("Confirm OTP Error:", err);
-      setLoginError("OTP salah atau kadaluarsa. Silakan coba lagi.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // ==== FINAL SUBMIT ====
   const handleComplete = async () => {
     const user = auth.currentUser;
@@ -457,93 +401,44 @@ const Onboarding: React.FC = () => {
                 </p>
               </div>
 
-              {/* Login Method Toggle */}
-              {!isRegister && (
-                <div className="flex bg-gray-100 p-1 rounded-xl mb-6 relative z-20">
-                  <button 
-                    onClick={() => { setLoginMethod("email"); setLoginError(""); }}
-                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${loginMethod === "email" ? "bg-white text-green-600 shadow-sm" : "text-gray-500"}`}
-                  >
-                    Email
-                  </button>
-                  <button 
-                    onClick={() => { setLoginMethod("phone"); setLoginError(""); }}
-                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${loginMethod === "phone" ? "bg-white text-green-600 shadow-sm" : "text-gray-500"}`}
-                  >
-                    Phone
-                  </button>
-                </div>
-              )}
-
               {/* Form Content */}
               <div className="space-y-4">
-                {loginMethod === "email" || isRegister ? (
-                  <>
-                    {isRegister && (
-                      <div>
-                        <label className="block font-medium mb-1">Full Name</label>
-                        <input
-                          type="text"
-                          value={formData.name}
-                          onChange={(e) =>
-                            setFormData({ ...formData, name: e.target.value })
-                          }
-                          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
-                          placeholder="Enter your full name"
-                        />
-                      </div>
-                    )}
-
-                    <div>
-                      <label className="block font-medium mb-1">Email</label>
-                      <input
-                        type="email"
-                        value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
-                        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
-                        placeholder="Enter your email"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-medium mb-1">Password</label>
-                      <input
-                        type="password"
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
-                        placeholder="Enter your password"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  /* Phone Login UI */
-                  <div className="space-y-4">
-                    {!confirmationResult ? (
-                      <div>
-                        <label className="block font-medium mb-1">Phone Number</label>
-                        <input
-                          type="tel"
-                          value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value)}
-                          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
-                          placeholder="+628123456789"
-                        />
-                      </div>
-                    ) : (
-                      <div>
-                        <label className="block font-medium mb-1">Verification Code (OTP)</label>
-                        <input
-                          type="text"
-                          value={otp}
-                          onChange={(e) => setOtp(e.target.value)}
-                          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400 text-center text-2xl tracking-widest font-bold"
-                          placeholder="000000"
-                        />
-                      </div>
-                    )}
+                {isRegister && (
+                  <div>
+                    <label className="block font-medium mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
+                      placeholder="Enter your full name"
+                    />
                   </div>
                 )}
+
+                <div>
+                  <label className="block font-medium mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
+                    placeholder="Enter your email"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-medium mb-1">Password</label>
+                  <input
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
+                    placeholder="Enter your password"
+                  />
+                </div>
 
                 {loginError && (
                   <p className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">{loginError}</p>
@@ -553,16 +448,14 @@ const Onboarding: React.FC = () => {
                   onClick={
                     isRegister 
                       ? handleRegister 
-                      : (loginMethod === "email" 
-                          ? handleLogin 
-                          : (!confirmationResult ? handleSendOTP : handleConfirmOTP))
+                      : handleLogin
                   }
                   disabled={isLoading}
                   className="w-full px-8 py-3 bg-gradient-to-r from-green-600 to-blue-600 rounded-lg text-white font-semibold disabled:opacity-50 hover:shadow-lg transition"
                 >
                   {isLoading 
                     ? "Processing..." 
-                    : (isRegister ? "Register" : (loginMethod === "email" ? "Login" : (!confirmationResult ? "Send OTP" : "Verify OTP")))}
+                    : (isRegister ? "Register" : "Login")}
                 </button>
 
                 {/* Divider */}
@@ -590,7 +483,6 @@ const Onboarding: React.FC = () => {
                         className="text-green-600 cursor-pointer font-semibold hover:underline"
                         onClick={() => {
                           setIsRegister(false);
-                          setLoginMethod("email");
                           setLoginError("");
                           setLoginEmail("");
                           setLoginPassword("");
@@ -615,8 +507,6 @@ const Onboarding: React.FC = () => {
                   )}
                 </p>
               </div>
-
-              <div id="recaptcha-container" className="flex justify-center" />
             </div>
           )}
 
