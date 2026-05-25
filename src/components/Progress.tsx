@@ -33,6 +33,7 @@ import {
 } from 'firebase/firestore';
 import { useDailyLog, getRankFromXP } from '../context/DailyLogContext';
 import { onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
+import WeightChart from './WeightChart';
 
 // --- TIPE DATA ---
 interface User {
@@ -610,64 +611,11 @@ const Progress: React.FC = () => {
         <div className="grid lg:grid-cols-2 gap-8 mb-8">
           
           {/* GRAFIK 1: BERAT BADAN (Dynamic Scale) */}
-          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-            <h3 className="text-xl font-bold text-gray-900 mb-8 flex items-center">
-              <TrendingUp className="mr-3 text-emerald-600" size={24}/> Weight Progression
-            </h3>
-            
-            <div className="relative h-64 w-full">
-              {progressEntries.length > 0 ? (
-                <div className="flex items-end justify-between h-full px-2 gap-2">
-                  {progressEntries.slice(-7).map((entry, idx) => {
-                    // LOGIC ZOOM: Cari min dan max dari data yang ditampilkan saja
-                    const recentEntries = progressEntries.slice(-7);
-                    const weights = recentEntries.map(e => e.weight);
-                    const minWeight = Math.min(...weights) - 0.5; // Buffer bawah
-                    const maxWeight = Math.max(...weights) + 0.5; // Buffer atas
-                    const range = maxWeight - minWeight || 1; 
-
-                    // Hitung tinggi batang dalam persen (relatif terhadap min/max view)
-                    const heightPercent = ((entry.weight - minWeight) / range) * 100;
-                    // Clamp nilai agar tidak overflow
-                    const safeHeight = Math.max(5, Math.min(100, heightPercent));
-
-                    return (
-                      <div key={idx} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                        {/* Tooltip Hover */}
-                        <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-800 text-white text-xs py-2 px-3 rounded-lg shadow-lg whitespace-nowrap z-10">
-                          {entry.weight} kg
-                          <div className="text-[10px] text-gray-300">{entry.notes}</div>
-                        </div>
-                        
-                        {/* Bar */}
-                        <div 
-                          className="w-full max-w-[40px] bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-lg shadow-sm hover:from-emerald-600 hover:to-emerald-500 transition-all cursor-pointer relative"
-                          style={{ height: `${safeHeight}%` }}
-                        >
-                            {/* Label Berat di atas batang (jika cukup ruang) */}
-                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-700">
-                                {entry.weight}
-                            </span>
-                        </div>
-                        
-                        {/* Tanggal */}
-                        <span className="text-[10px] text-gray-500 mt-2 font-medium">
-                          {new Date(entry.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                  <Scale className="mb-2 opacity-50" size={32} />
-                  <p className="text-sm font-medium">No weight data yet</p>
-                  <button onClick={() => setShowAddEntry(true)} className="mt-3 text-emerald-600 font-semibold text-sm hover:text-emerald-700 transition-colors">
-                    + Add First Entry
-                  </button>
-                </div>
-              )}
-            </div>
+          <div className="lg:col-span-1 h-full">
+            <WeightChart 
+              data={progressEntries.slice(-7)} 
+              targetWeight={user.idealWeight}
+            />
           </div>
 
           {/* GRAFIK 2: KALORI MASUK VS KELUAR */}

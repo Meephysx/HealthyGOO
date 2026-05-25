@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Flame,
@@ -12,14 +12,26 @@ import {
   Heart,
   Zap
 } from 'lucide-react';
+import HeroSection from './HeroSection';
+import CalorieProgressCard from './CalorieProgressCard';
+import WeightChart from './WeightChart';
+import QuickActions from './QuickActions';
 import { getRankFromXP } from '../context/DailyLogContext';
 import { getBMICategory, calculateMacroTargets } from '../utils/calculations';
 import type { User } from '../types';
 import { useDailyLog } from '../context/DailyLogContext';
+import { auth, db } from '../firebase';
+import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+
+interface WeightEntry {
+  date: string;
+  weight: number;
+}
 
 const Dashboard: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [currentDate] = useState(new Date());
+  const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
 
   const { consumedCalories, burnedCalories, macros, userProfile, isLoading } = useDailyLog();
 
@@ -27,6 +39,32 @@ const Dashboard: React.FC = () => {
     const userData = localStorage.getItem('user');
     if (userData) setUser(JSON.parse(userData));
   }, []);
+
+  const fetchWeightHistory = useCallback(async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    try {
+      const q = query(
+        collection(db, 'weight_logs'),
+        where('userId', '==', currentUser.uid),
+        orderBy('date', 'asc'),
+        limit(7)
+      );
+      const querySnapshot = await getDocs(q);
+      const logs = querySnapshot.docs.map(doc => ({
+        date: doc.data().date,
+        weight: doc.data().weight
+      }));
+      setWeightHistory(logs);
+    } catch (error) {
+      console.error("Error fetching weight history:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchWeightHistory();
+  }, [fetchWeightHistory]);
 
   if (!user || isLoading) {
     return (
@@ -99,26 +137,9 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col md:flex-row md:items-baseline gap-2">
-              <h1 className="text-2xl font-light text-slate-500 tracking-tight">
-                Halo, <span className="font-semibold text-slate-900">{user.name}</span>.
-              </h1>
-              <span className="hidden md:inline text-slate-300">/</span>
-              <p className="text-sm font-medium text-slate-400">
-                Semangat hari ini — {currentDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-              </p>
-            </div>
-            <div className="hidden md:block text-right">
-              <div className="inline-flex items-center space-x-2 px-4 py-2 bg-emerald-50 rounded-full">
-                <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium text-emerald-700">On Track</span>
-              </div>
-            </div>
-          </div>
-        </div>
+
+        {/* Modern Premium Hero Section */}
+        <HeroSection />
 
         {/* Rank & XP Progress */}
         <div className="mb-8 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -144,81 +165,21 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Daily Summary Card */}
+        {/* Premium Calorie Progress Section */}
         <div className="mb-12">
-          <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
-            <div className="relative bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 rounded-2xl p-8 md:p-10 text-white overflow-hidden">
-              {/* Background decoration */}
-              <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500 opacity-5 rounded-full -mr-20 -mt-20"></div>
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-teal-500 opacity-5 rounded-full -ml-16 -mb-16"></div>
-              
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-2xl font-bold flex items-center">
-                    <Flame className="h-6 w-6 mr-3 text-orange-400" />
-                    Daily Summary
-                  </h2>
-                  <span className="text-sm font-medium text-emerald-400 bg-emerald-500 bg-opacity-10 px-3 py-1 rounded-full">
-                    On Track
-                  </span>
-                </div>
+          <CalorieProgressCard 
+            eaten={consumedCalories} 
+            burned={burnedCalories} 
+            target={user.dailyCalories} 
+          />
+        </div>
 
-                {/* Three main metrics */}
-                <div className="grid grid-cols-3 gap-6 mb-10">
-                  {/* Eaten */}
-                  <div className="text-center">
-                    <p className="text-slate-400 text-sm font-medium mb-2">EATEN</p>
-                    <p className="text-4xl font-bold text-white mb-1">{Math.round(consumedCalories)}</p>
-                    <p className="text-slate-400 text-sm">kcal</p>
-                    <div className="mt-3 w-full bg-slate-700 rounded-full h-1.5">
-                      <div 
-                        className="h-1.5 rounded-full bg-gradient-to-r from-orange-400 to-red-500 transition-all duration-500"
-                        style={{ width: `${caloriePercentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  {/* Remaining */}
-                  <div className="text-center border-l border-r border-slate-700">
-                    <p className="text-slate-400 text-sm font-medium mb-2">REMAINING</p>
-                    <p className={`text-4xl font-bold mb-1 ${caloriesRemaining > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {Math.round(Math.abs(caloriesRemaining))}
-                    </p>
-                    <p className="text-slate-400 text-sm">kcal</p>
-                  </div>
-
-                  {/* Burned */}
-                  <div className="text-center">
-                    <p className="text-slate-400 text-sm font-medium mb-2">BURNED</p>
-                    <p className="text-4xl font-bold text-white mb-1">{Math.round(burnedCalories)}</p>
-                    <p className="text-slate-400 text-sm">kcal</p>
-                  </div>
-                </div>
-
-                {/* Progress bar full width */}
-                <div className="mb-8">
-                  <div className="w-full bg-slate-700 rounded-full h-2">
-                    <div 
-                      className="h-2 rounded-full bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 transition-all duration-500"
-                      style={{ width: `${caloriePercentage}%` }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between text-xs text-slate-400 mt-2">
-                    <span>0</span>
-                    <span>{user.dailyCalories} kcal</span>
-                  </div>
-                </div>
-
-                {/* Motivational Quote */}
-                <div className="pt-6 border-t border-slate-700">
-                  <p className="text-slate-300 text-sm italic">
-                    "{getMotivationalQuote()}"
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Premium Weight Trend Chart */}
+        <div className="mb-12">
+          <WeightChart 
+            data={weightHistory} 
+            targetWeight={user.idealWeight} 
+          />
         </div>
 
         {/* Macro Targets Section */}
@@ -344,7 +305,7 @@ const Dashboard: React.FC = () => {
                 Goal: {user.goal.replace('-', ' ')}
               </h3>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                {user.goal === 'weight-loss' && 'Losowe weight in a healthy, sustainable way'}
+                {user.goal === 'weight-loss' && 'Lose weight in a healthy, sustainable way'}
                 {user.goal === 'weight-gain' && 'Gain healthy weight with proper nutrition'}
                 {user.goal === 'muscle-gain' && 'Build lean muscle mass effectively'}
               </p>

@@ -22,7 +22,7 @@ export const calculateDailyCalories = (
   activityLevel: string,
   goal: string
 ): number => {
-  // Using Mifflin-St Jeor Equation
+  // Using Mifflin-St Jeor
   const bmr = gender === 'male'
     ? (10 * weight) + (6.25 * height) - (5 * age) + 5
     : (10 * weight) + (6.25 * height) - (5 * age) - 161;

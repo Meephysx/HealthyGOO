@@ -3,6 +3,8 @@ import { db, auth } from '../firebase';
 import { doc, onSnapshot, addDoc, updateDoc, collection, serverTimestamp, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
 import { getDateKey, saveUserLog } from '../services/logger';
+// Local workout dataset (author-provided)
+import workoutData from '../data/data_setengah';
 
 // --- TYPE DEFINITIONS ---
 
@@ -525,68 +527,59 @@ export const DailyLogProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
     setIsGeneratingAI(true);
     setAiError(null);
+
     try {
-        const { callAi, parseJsonLike } = await import('../utils/aiClient');
-        const variationSeed = Date.now();
-        
-        const locationSpecificInstruction = location === 'home' 
-          ? "LOKASI RUMAH: WAJIB gunakan hanya berat badan (Bodyweight) atau barang rumah tangga. Contoh: Diamond Pushup, Wide Pushup, Dips kursi."
-          : "LOKASI GYM: WAJIB maksimalkan alat gym (Barbell, Dumbbell, Mesin Kabel). Contoh: Bench Press, Incline Dumbbell Curls, Lat Pulldown.";
+      // Local generator using provided dataset `data_setengah.ts`
+      const pool = Array.isArray(workoutData) ? workoutData.slice() : [];
 
-        const prompt = `
-        TUGAS: Buatkan 1 rencana latihan harian yang SANGAT UNIK (Variation Seed: ${variationSeed}) dengan fokus "${split}" untuk lokasi ${location.toUpperCase()}. 
-        ${locationSpecificInstruction}
-        
-        PENTING: 
-        1. Hindari pengulangan gerakan yang sama dengan sesi sebelumnya.
-        2. Campurkan gerakan Compound dan Isolation.
-        3. OUTPUT HANYA JSON VALID, TANPA TEKS PENJELASAN LAIN.
-        PROFIL USER:
-        - Usia: ${userProfile.age}, Gender: ${userProfile.gender}
-        - BB: ${userProfile.weight}kg, TB: ${userProfile.height}cm
-        - Target: ${userProfile.goal}
-        - Aktivitas: ${userProfile.activityLevel}
-        - Target Kalori: ${userProfile.dailyCalories} kcal
-        
-        STRUKTUR JSON (ARRAY OF EXERCISES):
-        [
-          {"name":"Nama Latihan","sets":"3x10","caloriesPerSet":15,"reasoning":"..."}
-        ]
-        
-        Buatkan 4-6 latihan yang bervariasi untuk sesi ${split}. Setiap exercise harus memiliki nama, sets, caloriesPerSet, dan reasoning (alasan kenapa gerakan ini bagus untuk target user).`;
+      // Filter by equipment when possible (heuristic)
+      const filtered = pool.filter((item: any) => {
+        if (!item) return false;
+        const eq = (item.equipment || '').toString().toLowerCase();
+        if (location === 'gym') return eq.includes('gym') || eq.includes('garage') || eq.includes('barbell') || eq.includes('dumbbell');
+        if (location === 'home') return eq === '' || eq.includes('bodyweight') || eq.includes('home') || eq.includes('no equipment');
+        return true;
+      });
 
-        const data = await callAi([{ role: 'user', content: prompt }], 'llama-3.1-8b-instant', 120000);
-        if (data.offline || !data.reply) throw new Error(data.reply || 'AI is offline.');
-
-        const parsedExercises = parseJsonLike(data.reply);
-        
-        // Validate that we got a proper array with exercise objects
-        if (!parsedExercises) {
-          throw new Error('AI response could not be parsed. Please try again.');
+      // Shuffle helper
+      const shuffle = <T,>(arr: T[]) => {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
         }
-        
-        // Ensure it's an array and has valid exercise data
-        const exercises = Array.isArray(parsedExercises) ? parsedExercises : [parsedExercises];
-        if (exercises.length === 0) {
-          throw new Error('No exercises generated. Please try again.');
-        }
+        return a;
+      };
 
-        const aiExercises: WorkoutExercise[] = exercises.map((ex: any, idx: number) => ({
-          id: `ai-ex-${idx}-${Date.now()}`,
-          name: ex.name || 'Exercise',
-          sets: ex.sets || '3x10',
-          caloriesPerSet: ex.caloriesPerSet || 10,
+      const pickCount = 6;
+      const candidates = shuffle(filtered.length ? filtered : pool);
+      const picked = candidates.slice(0, Math.min(pickCount, candidates.length));
+
+      const aiExercises: WorkoutExercise[] = picked.map((it: any, idx: number) => {
+        const name = (it.exercise_name || it.exercise || it.title || 'Exercise').toString();
+        const setsNum = Number(it.sets) && Number.isFinite(Number(it.sets)) ? Math.max(1, Math.round(Number(it.sets))) : 3;
+        const repsNum = Number(it.reps) && Number.isFinite(Number(it.reps)) ? Math.abs(Math.round(Number(it.reps))) : 10;
+        const sets = `${setsNum}x${repsNum}`;
+        const intensity = Number(it.intensity) || 5;
+        const caloriesPerSet = Math.max(5, Math.round(intensity * 2));
+
+        return {
+          id: `local-ex-${idx}-${Date.now()}`,
+          name,
+          sets,
+          caloriesPerSet,
           completed: false,
-        }));
+        } as WorkoutExercise;
+      });
 
-        const manualExercises = workoutLog?.exercises.filter(ex => !ex.id.startsWith('ai-ex')) || [];
-        await updateWorkoutLog([...manualExercises, ...aiExercises], location, split);
+      const manualExercises = workoutLog?.exercises.filter(ex => !ex.id?.startsWith('ai-ex') && !ex.id?.startsWith('local-ex')) || [];
+      await updateWorkoutLog([...manualExercises, ...aiExercises], location, split);
 
     } catch (err: any) {
-        console.error("AI Workout Error:", err);
-        setAiError(err.message || "Gagal menyusun rencana latihan. Silakan coba lagi.");
+      console.error("Local Workout Error:", err);
+      setAiError(err?.message || "Gagal menyusun rencana latihan lokal. Silakan coba lagi.");
     } finally {
-        setIsGeneratingAI(false);
+      setIsGeneratingAI(false);
     }
   }, [userProfile, workoutLog, updateWorkoutLog]);
 

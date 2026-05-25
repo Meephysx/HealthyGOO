@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Loader, Check, AlertCircle, ArrowRight, Plus, X, Coffee, Sun, Moon, Cookie } from 'lucide-react';
 import { saveUserLog, fetchUserLogByDate, getDateKey } from '../services/logger';
+import { FOOD_DATASET, FoodItem } from '../services/knnService';
 
 export interface FoodDetail {
   name: string;
@@ -31,115 +32,21 @@ const AISearch: React.FC<FoodSearchProps> = ({ onSelectFood }) => {
     setError(null);
     setSearchResults([]);
 
-    const prompt = `
-      Sebagai ahli nutrisi, berikan informasi nutrisi lengkap untuk beberapa variasi makanan terkait: '${searchQuery}'.
-      Berikan minimal 5-10 variasi yang berbeda, seperti olahan, bagian tubuh, hidangan terkait, atau variasi umum dari makanan tersebut.
-      
-      Instruksi Output:
-      1. Berikan output HANYA dalam format JSON Array.
-      2. Jangan gunakan markdown block.
-      3. Gunakan Bahasa Indonesia.
-      
-      Struktur JSON Wajib:
-      [
-        {
-          "name": "Nama Makanan",
-          "calories": 0,
-          "protein": 0,
-          "carbs": 0,
-          "fat": 0,
-          "servingSize": "ukuran porsi"
-        },
-        ...
-      ]
-    `;
-
     try {
-      const { callAi, parseJsonLike } = await import('../utils/aiClient');
-      // Use Groq model name to route to Groq backend
-      const data = await callAi([{ role: 'user', content: prompt }], 'llama3-8b-8192');
+      // Simulasi Latency Local ML
+      await new Promise(res => setTimeout(res, 300));
 
-      if (data.offline) {
-        // If backend provided structured offline nutrition estimates, use them
-        if (Array.isArray((data as any).offline_nutrition) && (data as any).offline_nutrition.length > 0) {
-          const foods = (data as any).offline_nutrition.map((it: any) => ({
-            name: it.name || 'Unknown',
-            calories: Number(it.calories || 0),
-            protein: Number(it.protein || 0),
-            carbs: Number(it.carbs || it.carbohydrates || 0),
-            fat: Number(it.fat || 0),
-            servingSize: it.servingSize || it.serving || ''
-          }));
-          setSearchResults(foods);
-          return;
-        }
+      // Pencarian sekarang menggunakan data asli dari CSV yang sudah di-mapping
+      const filtered = FOOD_DATASET.filter(item => 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      ).slice(0, 20); // Batasi hasil agar UI tetap ringan
 
-        setError("AI Offline: " + (data.reply || 'Coba lagi nanti.'));
+      if (filtered.length === 0) {
+        setError("Makanan tidak ditemukan dalam dataset lokal.");
         return;
       }
 
-      const rawContent = data.reply ?? "";
-      let normalized = rawContent;
-      if (typeof rawContent !== 'string') normalized = JSON.stringify(rawContent);
-
-      // Defensive parsing pipeline using parseJsonLike and progressive sanitization
-      let parsed: any = parseJsonLike(normalized);
-      if (!parsed) {
-        // Strip code fences and trim
-        let cleanedText = String(normalized).replace(/```json/g, '').replace(/```/g, '').trim();
-        // If single object, wrap into array for consistency
-        if (cleanedText.startsWith('{')) cleanedText = `[${cleanedText}]`;
-        const start = cleanedText.indexOf('[');
-        const end = cleanedText.lastIndexOf(']');
-        if (start !== -1 && end !== -1) cleanedText = cleanedText.substring(start, end + 1);
-
-        // First attempt: parse using helper
-        parsed = parseJsonLike(cleanedText);
-
-        // Fallback attempts: try replacing single quotes with double quotes
-        if (!parsed) {
-          try {
-            const doubleQuoted = cleanedText.replace(/'/g, '"');
-            parsed = parseJsonLike(doubleQuoted);
-          } catch (e) {
-            // ignore
-          }
-        }
-
-        // Fallback: quote unquoted keys (simple heuristic)
-        if (!parsed) {
-          try {
-            const keyed = cleanedText.replace(/([{,]\s*)([A-Za-z0-9_\-]+)\s*:/g, '$1"$2":');
-            parsed = parseJsonLike(keyed);
-          } catch (e) {
-            // ignore
-          }
-        }
-
-        // If still not parsed, include small snippet for error reporting
-        if (!parsed) {
-          console.error('[FoodSearch] Failed to parse AI response as JSON array', { rawContent, cleanedText: String(normalized).slice(0, 800) });
-          throw new Error('Unable to parse AI response as JSON array. Raw snippet: ' + String(normalized).slice(0, 800));
-        }
-      }
-
-      // If parsed is a single object, wrap in array
-      let foodsData: any[] = [];
-      if (Array.isArray(parsed)) foodsData = parsed;
-      else if (typeof parsed === 'object' && parsed !== null) foodsData = [parsed];
-      else throw new Error('Parsed AI response is not an object or array.');
-
-      // Validate items
-      const foods: FoodDetail[] = foodsData.map((it: any) => ({
-        name: it.name || it.nama || 'Unknown',
-        calories: Number(it.calories || it.kcal || 0),
-        protein: Number(it.protein || 0),
-        carbs: Number(it.carbs || it.carbohydrates || 0),
-        fat: Number(it.fat || 0),
-        servingSize: it.servingSize || it.serving || it.porsi || ''
-      }));
-
-      setSearchResults(foods);
+      setSearchResults(filtered);
 
     } catch (err: any) {
       console.error('[FoodSearch] search error', err);

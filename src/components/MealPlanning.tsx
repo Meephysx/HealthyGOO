@@ -8,6 +8,7 @@ import { onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
 import { getUserProfile } from '../services/firestore';
 import { saveUserLog, fetchUserLogByDate, getDateKey } from '../services/logger';
 import { isEqual } from 'lodash';
+import { calculateTDEE, getFoodRecommendationsKNN, FoodItem, MealTimeCategory } from '../services/knnService';
 
 
 // --- Types Interfaces ---
@@ -376,70 +377,89 @@ const MealPlanning: React.FC = () => {
     }
   }, [user, consumedNutrition, currentDate, updateNutrition]);
 
-  // PROBLEM 5 FIX: This function is now more robust against malformed AI responses.
-  const generateAIMealPlan = useCallback(async (): Promise<void> => {
+  /**
+   * Rombak Total: Menggunakan KNN Mandiri daripada Groq AI
+   */
+  const generateKNNMealPlan = useCallback(async (): Promise<void> => {
     if (!user) {
         setAiError("User profile not loaded. Cannot generate meal plan.");
         return;
     }
     setIsLoadingAI(true);
     setAiError(null);
-  
-    const profileForAI = { ...user };
-    const variationSeed = Math.floor(Math.random() * 10000);
-    const proteinTargetHint = profileForAI.goal === 'muscle-gain' 
-      ? `Tinggi Protein (~${Math.round(profileForAI.weight * 1.8)}g total)` 
-      : `Protein Seimbang (~${Math.round(profileForAI.weight * 1.2)}g total)`;
-    
-    const prompt = `
-    Kamu adalah Ahli Gizi Dietetik profesional dengan spesialisasi kuliner nusantara.
-    TUGAS: Buatkan 1 set rencana makan harian yang SANGAT EKSOTIK dan BERVARIASI (Variation Seed: ${variationSeed}). 
-    OUTPUT WAJIB JSON VALID. TANPA PREAMBLE, TANPA PENJELASAN TEKS DI LUAR JSON.
-    ATURAN KONTEN:
-    1. ANTI-MAINSTREAM: JANGAN berikan menu membosankan seperti Nasi Goreng atau Gado-Gado. Jelajahi menu seperti: Pepes Ikan, Ayam Pop, Rawon tanpa lemak, Papeda, atau menu sehat internasional (Quinoa bowl, Salad tempe bakar).
-    2. KARBOHIDRAT VARIATIF: Jangan hanya nasi putih. Gunakan alternatif seperti Ubi, Singkong, Jagung, atau Nasi Merah secara bergantian.
-    2. PORSI DETAIL: Field "portions" WAJIB sangat spesifik (contoh: "100g Nasi Merah, 1 butir Telur Rebus").
-    3. KELENGKAPAN NUTRISI: Target Harian: ${profileForAI.dailyCalories} kcal, ${proteinTargetHint}.
-    4. REASONING MENDALAM: Jelaskan kaitan menu dengan target user (${profileForAI.goal}).
-    5. STRUKTUR: 1 kategori = 1 menu (Single Object).
-    6. PANTANGAN & ALERGI (MUTLAK): JANGAN PERNAH menyertakan bahan dari pantangan atau alergi user.
-    STRUKTUR JSON:
-    {
-      "Sarapan": {"id":"b-${variationSeed}","menu":"Nama Menu","calories":0,"protein":0,"carbs":0,"fat":0,"time":"07:00","reasoning":"...","portions":"..."},
-      "MakanSiang": {"id":"l-${variationSeed}","menu":"Nama Menu","calories":0,"protein":0,"carbs":0,"fat":0,"time":"12:00","reasoning":"...","portions":"..."},
-      "MakanMalam": {"id":"d-${variationSeed}","menu":"Nama Menu","calories":0,"protein":0,"carbs":0,"fat":0,"time":"18:00","reasoning":"...","portions":"..."},
-      "snacks": {"id":"s-${variationSeed}","menu":"Nama Menu","calories":0,"protein":0,"carbs":0,"fat":0,"time":"16:00","reasoning":"...","portions":"..."},
-      "totalCalories": ${profileForAI.dailyCalories},
-      "nutritionTips": "Berikan tips spesifik terkait menu hari ini",
-      "hydrationGoal": "Minimal 8 Gelas (2.5L)"
-    }
-    PROFIL USER:
-    - Usia: ${profileForAI.age} | Gender: ${profileForAI.gender}
-    - BB: ${profileForAI.weight}kg | TB: ${profileForAI.height}cm
-    - Aktivitas: ${profileForAI.activityLevel}
-    - Target Utama: ${profileForAI.goal}
-    - Pantangan: ${(profileForAI.dietaryRestrictions || []).join(', ') || '-'}
-    - Alergi: ${(profileForAI.allergies || []).join(', ') || '-'}`;
 
     try {
-      const { callAi, parseJsonLike } = await import('../utils/aiClient');
-      const data = await callAi([{ role: 'user', content: prompt }], 'llama-3.1-8b-instant', 120000);
+      const targetDaily = calculateTDEE(user);
+      const targetPerMeal = Math.round(targetDaily / 3.5);
 
-      if (data.offline || !data.reply) {
-        throw new Error(data.reply || 'AI is offline or returned an empty response.');
-      }
-      
-      const parsedPlan = normalizeAIMealPlan(parseJsonLike(data.reply));
-      if (!parsedPlan) {
-        throw new Error('Failed to parse or normalize AI response into a valid meal plan.');
-      }
-      
-      setAiMealPlan(parsedPlan);
-      await saveMealDataToFirestore(customMealPlan, parsedPlan, consumedFoods);
+      const shuffle = <T,>(items: T[]): T[] => {
+        const array = [...items];
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+      };
+
+      const randomRange = (base: number, minFactor: number, maxFactor: number) => {
+        const factor = minFactor + Math.random() * (maxFactor - minFactor);
+        return Math.max(40, Math.round(base * factor));
+      };
+
+      const buildReasoning = (item: FoodItem, calories: number, mealType: string) => {
+        const goalText = user.goal === 'lose-weight'
+          ? 'lebih ringan dan cocok untuk mengelola kalori hari ini'
+          : user.goal === 'muscle-gain' || user.goal === 'build-muscle'
+            ? 'tinggi protein untuk mendukung otot'
+            : 'seimbang untuk energi yang nyaman';
+
+        return `Menu acak ini dipilih dari kandidat terdekat sekitar ${calories} kcal untuk ${mealType.toLowerCase()} dan ${goalText}.`;
+      };
+
+      const makeItems = (baseCalories: number, mealType: MealTimeCategory) => {
+        const randomCalories = randomRange(baseCalories, 0.7, 1.3);
+        const topK = getFoodRecommendationsKNN(randomCalories, user.goal, mealType, 20, 3);
+        const [item] = shuffle(topK).slice(0, 1);
+        const finalCalories = item?.calories ?? randomCalories;
+
+        return [{
+          ...item,
+          menu: item?.name ?? 'Makanan acak',
+          calories: finalCalories,
+          protein: item?.protein ?? 0,
+          carbs: item?.carbs ?? 0,
+          fat: item?.fat ?? 0,
+          time: mealType === 'Sarapan' ? 'Pagi' : mealType === 'MakanSiang' ? 'Siang' : mealType === 'MakanMalam' ? 'Malam' : 'Snack',
+          portions: '1 Porsi',
+          reasoning: buildReasoning(item ?? { name: 'Makanan acak', calories: finalCalories, protein: 0, carbs: 0, fat: 0 }, finalCalories, mealType),
+        }];
+      };
+
+      const breakfast = makeItems(targetPerMeal, 'Sarapan');
+      const lunch = makeItems(targetPerMeal, 'MakanSiang');
+      const dinner = makeItems(Math.round(targetPerMeal * (0.8 + Math.random() * 0.3)), 'MakanMalam');
+      const snacks = makeItems(Math.round(targetPerMeal * (0.4 + Math.random() * 0.3)), 'snacks');
+      const totalCalories = breakfast[0].calories + lunch[0].calories + dinner[0].calories + snacks[0].calories;
+
+      const recommendations = {
+        Sarapan: breakfast,
+        MakanSiang: lunch,
+        MakanMalam: dinner,
+        snacks: snacks,
+        totalCalories,
+        nutritionTips: `Menu hari ini dibuat secara acak. Total kalori sekitar ${totalCalories} kcal.`,
+        hydrationGoal: "8 Gelas (2.5L)"
+      };
+
+      await new Promise(res => setTimeout(res, 800));
+
+      const normalized = normalizeAIMealPlan(recommendations);
+      setAiMealPlan(normalized);
+      await saveMealDataToFirestore(customMealPlan, normalized, consumedFoods);
 
     } catch (err: any) {
       console.error("AI Error:", err);
-      setAiError("Gagal menyusun menu. AI mungkin memberikan respons yang tidak valid. Silakan coba lagi.");
+      setAiError("Gagal menyusun menu. KNN gagal menghasilkan rekomendasi yang valid. Silakan coba lagi.");
     } finally {
       setIsLoadingAI(false);
     }
@@ -450,8 +470,8 @@ const MealPlanning: React.FC = () => {
     setAiMealPlan(null);
     setConsumedFoods(newConsumed);
     await saveMealDataToFirestore(customMealPlan, null, newConsumed);
-    await generateAIMealPlan();
-  }, [generateAIMealPlan, consumedFoods, customMealPlan, saveMealDataToFirestore]);
+    await generateKNNMealPlan();
+  }, [generateKNNMealPlan, consumedFoods, customMealPlan, saveMealDataToFirestore]);
   
   // --- RENDER LOGIC ---
   if (isDataLoading) {
@@ -485,8 +505,8 @@ const MealPlanning: React.FC = () => {
         {/* AI Action Buttons */}
         <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-8">
           {!aiMealPlan && !isLoadingAI && (
-             <button onClick={generateAIMealPlan} className="px-6 py-2 bg-green-600 text-white rounded-lg shadow-sm hover:bg-green-700 transition-all font-medium flex items-center gap-2">
-                <Sparkles size={18}/> Buat Rekomendasi AI
+             <button onClick={generateKNNMealPlan} className="px-6 py-2 bg-green-600 text-white rounded-lg shadow-sm hover:bg-green-700 transition-all font-medium flex items-center gap-2">
+                <Sparkles size={18}/> Buat Rekomendasi ML
              </button>
           )}
           {aiMealPlan && !isLoadingAI && (
@@ -501,7 +521,7 @@ const MealPlanning: React.FC = () => {
             <div className="mb-6">
                 <div className="grid grid-cols-3 md:grid-cols-4 gap-4 mb-3">
                     <div className="text-center"><p className="text-xs text-gray-500 uppercase font-bold">Target</p><p className="text-lg md:text-xl font-bold text-gray-900">{user.dailyCalories}</p><p className="text-xs text-gray-400">kcal</p></div>
-                    <div className="text-center"><p className="text-xs text-gray-500 uppercase font-bold">Masuk</p><p className="text-lg md:text-xl font-bold text-green-600">{consumedNutrition.calories}</p><p className="text-xs text-gray-400">kcal</p></div>
+                    <div className="text-center"><p className="text-xs text-gray-500 uppercase font-bold">Masuk</p><p className="text-lg md:text-xl font-bold text-green-600">{Math.round(consumedNutrition.calories)}</p><p className="text-xs text-gray-400">kcal</p></div>
                     <div className="text-center"><p className="text-xs text-gray-500 uppercase font-bold">Sisa</p><p className="text-lg md:text-xl font-bold text-blue-600">{Math.max(0, user.dailyCalories - consumedNutrition.calories)}</p><p className="text-xs text-gray-400">kcal</p></div>
                     <div className="text-center"><p className="text-xs text-gray-500 uppercase font-bold">Progress</p><p className="text-lg md:text-xl font-bold text-gray-900">{Math.round(calorieProgress)}%</p><p className="text-xs text-gray-400">dari target</p></div>
                 </div>
@@ -510,9 +530,9 @@ const MealPlanning: React.FC = () => {
             <div className="border-t pt-6">
                 <h3 className="text-sm font-bold text-gray-700 mb-4 uppercase">Rincian Makronutrisi</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div><div className="flex justify-between mb-2"><span className="text-sm font-medium text-gray-700">Protein</span><span className="text-sm font-bold text-orange-600">{consumedNutrition.protein}g</span></div><div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-orange-500" style={{ width: `${Math.min(100, (consumedNutrition.protein / (user.weight * 1.5)) * 100)}%` }} /></div></div>
-                    <div><div className="flex justify-between mb-2"><span className="text-sm font-medium text-gray-700">Karbohidrat</span><span className="text-sm font-bold text-blue-600">{consumedNutrition.carbs}g</span></div><div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-blue-500" style={{ width: `${Math.min(100, (consumedNutrition.carbs / (user.dailyCalories * 0.5 / 4)) * 100)}%` }} /></div></div>
-                    <div><div className="flex justify-between mb-2"><span className="text-sm font-medium text-gray-700">Lemak</span><span className="text-sm font-bold text-amber-600">{consumedNutrition.fat}g</span></div><div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-amber-500" style={{ width: `${Math.min(100, (consumedNutrition.fat / (user.dailyCalories * 0.25 / 9)) * 100)}%` }} /></div></div>
+                    <div><div className="flex justify-between mb-2"><span className="text-sm font-medium text-gray-700">Protein</span><span className="text-sm font-bold text-orange-600">{consumedNutrition.protein.toFixed(1)}g</span></div><div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-orange-500" style={{ width: `${Math.min(100, (consumedNutrition.protein / (user.weight * 1.5)) * 100)}%` }} /></div></div>
+                    <div><div className="flex justify-between mb-2"><span className="text-sm font-medium text-gray-700">Karbohidrat</span><span className="text-sm font-bold text-blue-600">{consumedNutrition.carbs.toFixed(1)}g</span></div><div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-blue-500" style={{ width: `${Math.min(100, (consumedNutrition.carbs / (user.dailyCalories * 0.5 / 4)) * 100)}%` }} /></div></div>
+                    <div><div className="flex justify-between mb-2"><span className="text-sm font-medium text-gray-700">Lemak</span><span className="text-sm font-bold text-amber-600">{consumedNutrition.fat.toFixed(1)}g</span></div><div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-amber-500" style={{ width: `${Math.min(100, (consumedNutrition.fat / (user.dailyCalories * 0.25 / 9)) * 100)}%` }} /></div></div>
                 </div>
             </div>
         </div>
@@ -521,7 +541,7 @@ const MealPlanning: React.FC = () => {
         {isLoadingAI ? (
             <div className="flex flex-col items-center justify-center py-20"><Loader className="animate-spin text-green-500 mb-4" size={40} /><p className="text-gray-500 text-sm">Meracik menu spesial...</p></div>
         ) : aiError ? (
-            <div className="text-center p-8 bg-red-50 rounded-xl text-red-600"><p>{aiError}</p><button onClick={generateAIMealPlan} className="mt-2 font-bold underline">Coba Lagi</button></div>
+            <div className="text-center p-8 bg-red-50 rounded-xl text-red-600"><p>{aiError}</p><button onClick={generateKNNMealPlan} className="mt-2 font-bold underline">Coba Lagi</button></div>
         ) : (
           <div className="space-y-10 pb-20">
             {MEAL_TYPES.map((type) => {
