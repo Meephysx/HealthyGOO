@@ -60,14 +60,14 @@ const WeightChart: React.FC<WeightChartProps> = ({ data, targetWeight }) => {
             <Scale size={24} />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-gray-900">Weight Trend</h3>
-            <p className="text-sm text-gray-500 font-medium">Last 7 entries</p>
+            <h3 className="text-lg font-bold text-gray-900">Tren Berat</h3>
+            <p className="text-sm text-gray-500 font-medium">7 entri terakhir</p>
           </div>
         </div>
 
         <div className="flex items-center gap-6">
           <div className="text-right">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Current</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Saat ini</p>
             <div className="flex items-center gap-2">
               <span className="text-2xl font-black text-gray-900">{latestWeight}kg</span>
               {diff !== 0 ? (
@@ -134,7 +134,7 @@ const WeightChart: React.FC<WeightChartProps> = ({ data, targetWeight }) => {
         ) : (
           <div className="h-full w-full flex flex-col items-center justify-center bg-gray-50 rounded-3xl border-2 border-dashed border-gray-100">
              <Scale className="text-gray-200 mb-2" size={48} />
-             <p className="text-gray-400 text-sm font-medium">No weight data available yet</p>
+             <p className="text-gray-400 text-sm font-medium">Belum ada data</p>
           </div>
         )}
       </div>
@@ -142,7 +142,7 @@ const WeightChart: React.FC<WeightChartProps> = ({ data, targetWeight }) => {
       <div className="mt-6 flex justify-center gap-6">
         <div className="flex items-center gap-2">
           <div className="w-3 h-1 bg-emerald-500 rounded-full" />
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Actual Weight</span>
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{latestWeight}kg</span>
         </div>
         {targetWeight && (
           <div className="flex items-center gap-2">

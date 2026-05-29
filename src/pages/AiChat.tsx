@@ -171,7 +171,7 @@ const AiChat = () => {
       // Optionally, add an error message to the chat
       await addChatMessage(chatSession.id, {
         sender: "ai",
-        text: "Sorry, I encountered an error. Please try again.",
+        text: "Maaf, terjadi kesalahan. Silakan coba lagi.",
       });
     } finally {
       setIsLoading(false);
@@ -278,7 +278,7 @@ const AiChat = () => {
         <button onClick={() => navigate(-1)} className="mr-4 text-gray-700">
           <ArrowLeft size={24} />
         </button>
-        <h1 className="text-xl font-bold text-gray-800">AI Coach</h1>
+        <h1 className="text-xl font-bold text-gray-800">Pelatih AI</h1>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -310,7 +310,7 @@ const AiChat = () => {
           <div className="flex justify-start">
             <div className="bg-white text-gray-800 rounded-bl-lg rounded-2xl px-4 py-3 flex items-center shadow-sm border border-gray-200">
               <Loader2 className="animate-spin mr-3 text-green-500" size={20} />
-              <span>Thinking...</span>
+              <span>Memproses...</span>
             </div>
           </div>
         )}
@@ -324,7 +324,7 @@ const AiChat = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSend()}
-            placeholder="Ask about fitness or nutrition..."
+            placeholder="Tanyakan tentang kebugaran atau nutrisi..."
             className="flex-1 w-full px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 transition-shadow"
             disabled={isLoading}
           />
@@ -332,7 +332,7 @@ const AiChat = () => {
             onClick={handleSend}
             disabled={isLoading || input.trim() === ""}
             className="ml-3 p-3 rounded-full bg-green-500 text-white disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-            aria-label="Send message"
+            aria-label="Kirim pesan"
           >
             <Send size={20} />
           </button>

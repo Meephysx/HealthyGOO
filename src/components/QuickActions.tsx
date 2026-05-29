@@ -38,22 +38,22 @@ const QuickActions: React.FC = () => {
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <ActionButton 
         icon={Scan} 
-        label="Scan Food" 
-        subtitle="AI Nutrition Scan"
+        label="Pindai Makanan" 
+        subtitle="Pindai Nutrisi AI"
         gradient="from-emerald-500 to-teal-600"
         shadow="shadow-emerald-200"
       />
       <ActionButton 
         icon={Sparkles} 
-        label="Generate Meal" 
-        subtitle="Custom AI Plan"
+        label="Buat Menu" 
+        subtitle="Rencana AI Kustom"
         gradient="from-violet-500 to-purple-600"
         shadow="shadow-purple-200"
       />
       <ActionButton 
         icon={Play} 
-        label="Start Workout" 
-        subtitle="Active Routine"
+        label="Mulai Latihan" 
+        subtitle="Rutinitas Aktif"
         gradient="from-blue-500 to-indigo-600"
         shadow="shadow-blue-200"
       />

@@ -95,11 +95,11 @@ const Dashboard: React.FC = () => {
   const xpPercentage = Math.min(100, (xpInLevel / xpNeeded) * 100);
 
   const motivationalQuotes = [
-    "Fuel your body, fuel your mind. Keep going! 💪",
-    "Every meal is a choice. Choose wisely! 🥗",
-    "Progress over perfection. You're doing great! 🌟",
-    "Your health is worth the effort. Keep pushing! 🔥",
-    "Small steps lead to big results. Keep going! 🚀"
+    "Nutrisi yang tepat mendukung harimu. Terus semangat! 💪",
+    "Setiap makan adalah pilihan. Pilih yang sehat! 🥗",
+    "Progres lebih penting dari sempurna. Kamu sudah luar biasa! 🌟",
+    "Kesehatanmu berharga. Terus dorong batasmu! 🔥",
+    "Langkah kecil membawa hasil besar. Jangan berhenti! 🚀"
   ];
   
   const getMotivationalQuote = () => {
@@ -117,7 +117,7 @@ const Dashboard: React.FC = () => {
       percentage: Math.min(100, (macros.protein / macroTargets.protein) * 100)
     },
     { 
-      label: 'Carbs', 
+      label: 'Karbohidrat', 
       current: Math.round(macros.carbs), 
       target: Math.round(macroTargets.carbs), 
       unit: 'g',
@@ -125,7 +125,7 @@ const Dashboard: React.FC = () => {
       percentage: Math.min(100, (macros.carbs / macroTargets.carbs) * 100)
     },
     { 
-      label: 'Fat', 
+      label: 'Lemak', 
       current: Math.round(macros.fat), 
       target: Math.round(macroTargets.fat), 
       unit: 'g',
@@ -149,13 +149,13 @@ const Dashboard: React.FC = () => {
                 <Award className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 capitalize">{rank} Rank</h3>
-                <p className="text-sm text-gray-500 font-medium">{xp} Total XP earned</p>
+                <h3 className="text-xl font-bold text-gray-900 capitalize">Peringkat {rank}</h3>
+                <p className="text-sm text-gray-500 font-medium">{xp} Total XP</p>
               </div>
             </div>
             <div className="flex-1 max-w-md w-full">
               <div className="flex justify-between mb-2">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Next Rank Progress</span>
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Kemajuan Peringkat Selanjutnya</span>
                 <span className="text-xs font-bold text-orange-600">{Math.round(xpPercentage)}%</span>
               </div>
               <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden">
@@ -187,13 +187,13 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900 flex items-center">
               <Target className="h-6 w-6 mr-3 text-emerald-600" />
-              Macro Targets
+              Target Makro
             </h2>
             <Link 
               to="/meals" 
               className="text-emerald-600 hover:text-emerald-700 text-sm font-medium flex items-center transition-colors"
             >
-              View Details
+              Lihat Detail
               <ChevronRight className="h-4 w-4 ml-1" />
             </Link>
           </div>
@@ -237,13 +237,13 @@ const Dashboard: React.FC = () => {
         <div className="mb-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
             <Activity className="h-6 w-6 mr-3 text-emerald-600" />
-            Your Stats
+            Statistik Anda
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 font-medium">Daily Target</p>
+                  <p className="text-sm text-gray-600 font-medium">Target Harian</p>
                   <p className="text-2xl font-bold text-gray-900 mt-1">{user.dailyCalories}</p>
                   <p className="text-xs text-gray-500">kcal</p>
                 </div>
@@ -302,24 +302,24 @@ const Dashboard: React.FC = () => {
                 <Zap className="h-8 w-8 text-emerald-600" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 capitalize mb-3">
-                Goal: {user.goal.replace('-', ' ')}
+                Tujuan: {user.goal.replace('-', ' ')}
               </h3>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                {user.goal === 'weight-loss' && 'Lose weight in a healthy, sustainable way'}
-                {user.goal === 'weight-gain' && 'Gain healthy weight with proper nutrition'}
-                {user.goal === 'muscle-gain' && 'Build lean muscle mass effectively'}
+                {user.goal === 'weight-loss' && 'Turunkan berat badan dengan cara sehat dan berkelanjutan'}
+                {user.goal === 'weight-gain' && 'Tambahkan berat badan sehat dengan nutrisi yang tepat'}
+                {user.goal === 'muscle-gain' && 'Bangun massa otot tanpa lemak secara efektif'}
               </p>
               <div className="grid grid-cols-3 gap-4">
                 <div className="p-4 bg-slate-50 rounded-lg">
-                  <p className="text-xs text-gray-600 mb-1">Current Weight</p>
+                  <p className="text-xs text-gray-600 mb-1">Berat Saat Ini</p>
                   <p className="text-xl font-bold text-gray-900">{user.weight} kg</p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-lg border-2 border-emerald-500">
-                  <p className="text-xs text-gray-600 mb-1">Target Weight</p>
+                  <p className="text-xs text-gray-600 mb-1">Berat Target</p>
                   <p className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">{user.idealWeight} kg</p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-lg">
-                  <p className="text-xs text-gray-600 mb-1">Need to</p>
+                  <p className="text-xs text-gray-600 mb-1">Perlu</p>
                   <p className="text-xl font-bold text-gray-900">{Math.abs(user.weight - user.idealWeight).toFixed(1)} kg</p>
                 </div>
               </div>
@@ -334,28 +334,28 @@ const Dashboard: React.FC = () => {
             className="group flex flex-col items-center justify-center p-6 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105"
           >
             <Apple className="h-6 w-6 mb-2 group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-semibold text-center">Track Meals</span>
+            <span className="text-sm font-semibold text-center">Catat Makanan</span>
           </Link>
           <Link 
             to="/exercises" 
             className="group flex flex-col items-center justify-center p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105"
           >
             <Dumbbell className="h-6 w-6 mb-2 group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-semibold text-center">Workouts</span>
+            <span className="text-sm font-semibold text-center">Latihan</span>
           </Link>
           <Link 
             to="/food-search" 
             className="group flex flex-col items-center justify-center p-6 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105"
           >
             <Flame className="h-6 w-6 mb-2 group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-semibold text-center">Food Search</span>
+            <span className="text-sm font-semibold text-center">Cari Makanan</span>
           </Link>
           <Link 
             to="/progress" 
             className="group flex flex-col items-center justify-center p-6 bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105"
           >
             <TrendingUp className="h-6 w-6 mb-2 group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-semibold text-center">Progress</span>
+            <span className="text-sm font-semibold text-center">Kemajuan</span>
           </Link>
         </div>
       </div>

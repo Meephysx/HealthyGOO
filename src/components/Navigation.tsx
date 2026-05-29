@@ -16,12 +16,12 @@ const Navigation: React.FC = () => {
 
   // Menu bawah sekarang hanya 5 (Tanpa Search)
   const navItems = [
-    { path: '/dashboard', icon: Home, label: 'Home' },
-    { path: '/meals', icon: Calendar, label: 'Meals' }, 
-    { path: '/exercises', icon: Dumbbell, label: 'Workouts' },
-    { path: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
-    { path: '/progress', icon: TrendingUp, label: 'Progress' },
-    { path: '/profile', icon: User, label: 'Profile' }
+    { path: '/dashboard', icon: Home, label: 'Beranda' },
+    { path: '/meals', icon: Calendar, label: 'Makanan' }, 
+    { path: '/exercises', icon: Dumbbell, label: 'Latihan' },
+    { path: '/leaderboard', icon: Trophy, label: 'Papan Peringkat' },
+    { path: '/progress', icon: TrendingUp, label: 'Kemajuan' },
+    { path: '/profile', icon: User, label: 'Profil' }
   ];
 
   return (
@@ -83,7 +83,7 @@ const Navigation: React.FC = () => {
                   location.pathname === '/food-search' ? 'text-green-600' : 'text-gray-500'
                 }`}
               >
-                Search
+                Cari
               </Link>
             </div>
           </div>

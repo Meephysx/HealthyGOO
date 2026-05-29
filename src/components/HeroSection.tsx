@@ -1,13 +1,26 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Flame, ChevronRight, Zap, Trophy } from 'lucide-react';
-import { useDailyLog } from '../context/DailyLogContext';
+import { useDailyLog, getRankFromXP } from '../context/DailyLogContext';
 import { useAuth } from '../context/AuthContext';
 
 const HeroSection: React.FC = () => {
   const { userProfile } = useDailyLog();
   const { currentUser } = useAuth();
-  const displayName = userProfile?.name || userProfile?.fullname || currentUser?.displayName || 'Aal';
+  const displayName = userProfile?.name || userProfile?.fullname || currentUser?.displayName || 'Pengguna';
+  const xp = userProfile?.xp || 0;
+  const levelLabel = userProfile?.rank || getRankFromXP(xp);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'Selamat Pagi';
+    if (hour >= 12 && hour < 15) return 'Selamat Siang';
+    if (hour >= 15 && hour < 18) return 'Selamat Sore';
+    if (hour >= 18 && hour < 22) return 'Selamat Malam';
+    return 'Selamat Malam';
+  };
+
+  const greeting = getGreeting();
 
   const containerVariants = {
     hidden: { opacity: 0, y: 30 },
@@ -49,31 +62,30 @@ const HeroSection: React.FC = () => {
             >
               <Flame size={16} className="text-emerald-400 fill-emerald-400" />
               <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">
-                7 Day Streak
+                7 Hari Berturut-turut
               </span>
             </motion.div>
           </motion.div>
 
           <motion.div variants={itemVariants} className="space-y-2">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
-              Good Morning, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">{displayName}</span> 👋
+              {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">{displayName}</span> 👋
             </h1>
-            <p className="text-slate-400 text-lg md:text-xl font-medium max-w-md leading-relaxed">
-              You're doing great! Ready to crush today's goals and reach new heights?
-            </p>
-          </motion.div>
-
-          <motion.div variants={itemVariants} className="flex flex-wrap gap-4 pt-4">
-            <button className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-8 py-4 rounded-2xl font-bold transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg shadow-emerald-500/20">
-              Start Workout <ChevronRight size={20} />
-            </button>
+            <div className="space-y-4">
+              <p className="text-slate-400 text-lg md:text-xl font-medium max-w-md leading-relaxed">
+                Kamu hebat! Siap capai target hari ini dan menembus batas baru?
+              </p>
+              <span className="inline-flex items-center gap-2 text-emerald-300 font-semibold">
+                Mulai Latihan <ChevronRight size={20} />
+              </span>
+            </div>
             <div className="flex items-center gap-4 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl backdrop-blur-md">
               <div className="p-2 bg-blue-500/20 rounded-lg">
                 <Zap size={20} className="text-blue-400 fill-blue-400" />
               </div>
               <div>
                 <p className="text-white font-bold text-sm">450 kcal</p>
-                <p className="text-slate-500 text-xs">Today's Target</p>
+                <p className="text-slate-500 text-xs">Target Hari Ini</p>
               </div>
             </div>
           </motion.div>
@@ -102,7 +114,7 @@ const HeroSection: React.FC = () => {
                   <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
                     <div className="h-full w-[80%] bg-emerald-400 rounded-full" />
                   </div>
-                  <p className="text-center text-xs font-bold text-slate-400 tracking-widest uppercase">Level 12</p>
+                  <p className="text-center text-xs font-bold text-slate-400 tracking-widest uppercase">{levelLabel}</p>
                 </div>
               </div>
             </motion.div>

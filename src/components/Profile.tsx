@@ -74,6 +74,19 @@ const Profile: React.FC = () => {
     setTimeout(() => setNotification(null), 4000);
   };
 
+  const getGoalLabel = (goal?: string) => {
+    switch (goal) {
+      case 'weight-loss':
+        return 'Penurunan Berat';
+      case 'weight-gain':
+        return 'Penambahan Berat';
+      case 'muscle-gain':
+        return 'Pembentukan Otot';
+      default:
+        return 'Perjalanan';
+    }
+  };
+
   // --- BAGIAN 1: LOAD DATA LEBIH AMAN ---
   useEffect(() => {
     const loadUserData = async () => {
@@ -166,10 +179,10 @@ const Profile: React.FC = () => {
         localStorage.setItem('user', JSON.stringify(updatedUser));
       }
 
-      showNotification('success', 'Profile photo updated!');
+      showNotification('success', 'Foto profil berhasil diperbarui!');
     } catch (error) {
       console.error("Upload error:", error);
-      showNotification('error', 'Upload failed. Please try again.');
+      showNotification('error', 'Unggahan gagal. Silakan coba lagi.');
       // Revert preview to the original photo on failure
       setPhotoPreview(user?.photoURL || null);
     } finally {
@@ -458,7 +471,7 @@ const Profile: React.FC = () => {
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
                     className="absolute bottom-1 right-1 p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    aria-label="Change profile photo"
+                    aria-label="Ubah foto profil"
                 >
                     <Edit2 size={16} />
                 </button>
@@ -467,13 +480,13 @@ const Profile: React.FC = () => {
               {/* Name & Meta */}
               <div className="flex-1 text-center md:text-left mb-2">
                 <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-                  {user.name || 'User'}
+                  {user.name || 'Pengguna'}
                 </h1>
                 <p className="text-gray-500 font-medium">{user.email}</p>
                 
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-3">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
-                    Member since {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Recently'}
+                    Bergabung sejak {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'baru-baru ini'}
                   </span>
                   {user.bmi && (
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold border ${getBmiColorClass(bmiInfo.color, 'text')} ${getBmiColorClass(bmiInfo.color, 'bg').replace('bg-', 'border-').replace('100', '200')} bg-opacity-10`}>
@@ -492,7 +505,7 @@ const Profile: React.FC = () => {
                   className="flex-1 md:flex-none flex items-center justify-center px-5 py-2.5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200 font-medium text-sm"
                 >
                   <Edit2 className="w-4 h-4 mr-2" />
-                  Edit Profile
+                  Edit Profil
                 </button>
               ) : (
                 <>
@@ -503,14 +516,14 @@ const Profile: React.FC = () => {
                     }}
                     className="flex-1 md:flex-none px-5 py-2.5 text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all font-medium text-sm"
                   >
-                    Cancel
+                    Batal
                   </button>
                   <button
                     onClick={handleSave}
                     className="flex-1 md:flex-none flex items-center justify-center px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all shadow-lg shadow-green-200 font-medium text-sm"
                   >
                     <Save className="w-4 h-4 mr-2" />
-                    Save Changes
+                    Simpan Perubahan
                   </button>
                 </>
               )}
@@ -529,12 +542,12 @@ const Profile: React.FC = () => {
                 <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
                   <User size={20} />
                 </div>
-                <h2 className="text-lg font-bold text-gray-900">Personal Information</h2>
+                <h2 className="text-lg font-bold text-gray-900">Informasi Pribadi</h2>
               </div>
               
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Full Name</label>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama Lengkap</label>
                   {isEditing ? (
                     <input
                       type="text"
@@ -562,7 +575,7 @@ const Profile: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1"><Calendar size={12}/> Age</label>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1"><Calendar size={12}/> Umur</label>
                   {isEditing ? (
                     <input
                       type="number"
@@ -571,20 +584,20 @@ const Profile: React.FC = () => {
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
                     />
                   ) : (
-                    <p className="text-gray-900 font-medium text-lg border-b border-transparent py-1">{user.age} <span className="text-sm text-gray-400 font-normal">years</span></p>
+                    <p className="text-gray-900 font-medium text-lg border-b border-transparent py-1">{user.age} <span className="text-sm text-gray-400 font-normal">tahun</span></p>
                   )}
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Gender</label>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Jenis Kelamin</label>
                   {isEditing ? (
                     <select
                       value={formData.gender}
                       onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
                     >
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
+                      <option value="male">Pria</option>
+                      <option value="female">Wanita</option>
                     </select>
                   ) : (
                     <p className="text-gray-900 font-medium text-lg border-b border-transparent py-1 capitalize">{user.gender}</p>
@@ -592,7 +605,7 @@ const Profile: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1"><Ruler size={12}/> Height</label>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1"><Ruler size={12}/> Tinggi</label>
                   {isEditing ? (
                     <div className="relative">
                       <input
@@ -609,7 +622,7 @@ const Profile: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1"><Scale size={12}/> Weight</label>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1"><Scale size={12}/> Berat</label>
                   {isEditing ? (
                     <div className="relative">
                       <input
@@ -633,12 +646,12 @@ const Profile: React.FC = () => {
                 <div className="p-2 bg-orange-50 rounded-lg text-orange-600">
                   <Target size={20} />
                 </div>
-                <h2 className="text-lg font-bold text-gray-900">Fitness Goals</h2>
+                <h2 className="text-lg font-bold text-gray-900">Tujuan Kebugaran</h2>
               </div>
               
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Activity Level</label>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Level Aktivitas</label>
                   {isEditing ? (
                     <select
                       value={formData.activityLevel}
@@ -660,21 +673,21 @@ const Profile: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Primary Goal</label>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tujuan Utama</label>
                   {isEditing ? (
                     <select
                       value={formData.goal}
                       onChange={(e) => setFormData({ ...formData, goal: e.target.value })}
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all outline-none"
                     >
-                      <option value="weight-loss">Weight Loss</option>
-                      <option value="weight-gain">Weight Gain</option>
-                      <option value="muscle-gain">Muscle Gain</option>
+                      <option value="weight-loss">Penurunan Berat Badan</option>
+                      <option value="weight-gain">Penambahan Berat Badan</option>
+                      <option value="muscle-gain">Penambahan Otot</option>
                     </select>
                   ) : (
                     <div className="flex items-center gap-2 py-1">
                       <Target size={18} className="text-orange-500" />
-                      <p className="text-gray-900 font-medium text-lg capitalize">{user.goal ? user.goal.replace('-', ' ') : ''}</p>
+                      <p className="text-gray-900 font-medium text-lg capitalize">{user.goal ? getGoalLabel(user.goal) : ''}</p>
                     </div>
                   )}
                 </div>
@@ -687,12 +700,12 @@ const Profile: React.FC = () => {
                 <div className="p-2 bg-green-50 rounded-lg text-green-600">
                   <CheckCircle2 size={20} />
                 </div>
-                <h2 className="text-lg font-bold text-gray-900">Dietary Preferences</h2>
+                <h2 className="text-lg font-bold text-gray-900">Preferensi Diet</h2>
               </div>
               
               <div className="space-y-8">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-3">Dietary Restrictions</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-3">Pembatasan Diet</label>
                   {isEditing ? (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {DIETARY_RESTRICTIONS.map(restriction => (
@@ -716,14 +729,14 @@ const Profile: React.FC = () => {
                           </span>
                         ))
                       ) : (
-                        <p className="text-gray-400 italic text-sm">No dietary restrictions selected.</p>
+                        <p className="text-gray-400 italic text-sm">Tidak ada pembatasan diet yang dipilih.</p>
                       )}
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-3">Allergies</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-3">Alergi</label>
                   {isEditing ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {COMMON_ALLERGIES.map(allergy => (
@@ -747,7 +760,7 @@ const Profile: React.FC = () => {
                           </span>
                         ))
                       ) : (
-                        <p className="text-gray-400 italic text-sm">No known allergies.</p>
+                        <p className="text-gray-400 italic text-sm">Tidak ada alergi yang diketahui.</p>
                       )}
                     </div>
                   )}
@@ -762,11 +775,11 @@ const Profile: React.FC = () => {
             {/* Health Metrics Widget */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
-                <Activity className="text-green-600" size={20}/> Health Metrics
+                <Activity className="text-green-600" size={20}/> Metrik Kesehatan
               </h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <span className="text-sm text-gray-500 font-medium">BMI Score</span>
+                  <span className="text-sm text-gray-500 font-medium">Skor BMI</span>
                   <div className="text-right">
                     <span className={`block font-bold text-lg ${getBmiColorClass(bmiInfo.color, 'text')}`}>
                       {user.bmi || '-'}
@@ -775,11 +788,11 @@ const Profile: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <span className="text-sm text-gray-500 font-medium">Ideal Weight</span>
+                  <span className="text-sm text-gray-500 font-medium">Berat Ideal</span>
                   <span className="font-bold text-lg text-gray-900">{user.idealWeight || '-'} <span className="text-sm font-normal text-gray-400">kg</span></span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <span className="text-sm text-gray-500 font-medium">Daily Calories</span>
+                  <span className="text-sm text-gray-500 font-medium">Kalori Harian</span>
                   <span className="font-bold text-lg text-gray-900">{user.dailyCalories || '-'} <span className="text-sm font-normal text-gray-400">kcal</span></span>
                 </div>
               </div>
@@ -791,17 +804,17 @@ const Profile: React.FC = () => {
                 <div className="p-2 bg-white/10 rounded-lg mr-3">
                   <Target className="h-5 w-5 text-green-400" />
                 </div>
-                <h3 className="text-lg font-bold">Your Focus</h3>
+                <h3 className="text-lg font-bold">Fokusmu</h3>
               </div>
               <p className="text-2xl font-bold mb-2 capitalize tracking-tight">
-                {user.goal ? user.goal.replace('-', ' ') : 'Fitness'} Journey
+                {user.goal ? getGoalLabel(user.goal) : 'Perjalanan'} Kebugaran
               </p>
               <div className="text-sm text-gray-400 leading-relaxed">
-                Stay consistent with your meal planning and workouts to achieve your {user.goal ? user.goal.replace('-', ' ') : ''} goals!
+                Tetap konsisten dengan rencana makan dan latihanmu untuk mencapai tujuan {user.goal ? getGoalLabel(user.goal) : ''}!
               </div>
               <div className="mt-6 pt-6 border-t border-white/10 flex items-center justify-between text-xs font-medium text-gray-400">
-                <span>Current Status</span>
-                <span className="text-green-400">Active</span>
+                <span>Status Saat Ini</span>
+                <span className="text-green-400">Aktif</span>
               </div>
             </div>
 
@@ -817,7 +830,7 @@ const Profile: React.FC = () => {
                     <div className="p-2 bg-emerald-500/20 rounded-lg">
                       <Sparkles className="h-5 w-5 text-emerald-400" />
                     </div>
-                    <h3 className="text-lg font-bold">XP & Rank</h3>
+                    <h3 className="text-lg font-bold">XP & Peringkat</h3>
                   </div>
                   <div className="flex items-center gap-2">
                     {getRankIcon(user.rank || 'bronze')}
@@ -827,7 +840,7 @@ const Profile: React.FC = () => {
                 {/* Current Rank Display */}
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-slate-400 text-xs">Season Rank</p>
+                    <p className="text-slate-400 text-xs">Peringkat Musim</p>
                     <p className="text-2xl font-bold capitalize flex items-center gap-2">
                       {getRankFromXP(user.xp || 0)}
                       {getRankFromXP(user.xp || 0) === 'Shadow Monarch' && (
@@ -836,7 +849,7 @@ const Profile: React.FC = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-slate-400 text-xs">Season Score</p>
+                    <p className="text-slate-400 text-xs">Skor Musim</p>
                     <p className="text-3xl font-bold text-emerald-400">{user.xp || 0}</p>
                   </div>
                 </div>
@@ -845,7 +858,7 @@ const Profile: React.FC = () => {
                 <div className="mt-2 mb-4 p-3 bg-white/5 rounded-xl border border-white/10 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Trophy size={14} className="text-yellow-500" />
-                    <span className="text-[10px] text-slate-300 font-medium">Highest Rank Ever</span>
+                    <span className="text-[10px] text-slate-300 font-medium">Peringkat Tertinggi</span>
                   </div>
                   <span className="text-[10px] font-bold text-white uppercase tracking-wider bg-white/10 px-2 py-0.5 rounded">
                     {user.highestRank || 'Bronze'}
@@ -855,7 +868,7 @@ const Profile: React.FC = () => {
                 {/* XP Progress Bar */}
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-slate-400">Progress to {getNextRank(user.xp || 0)}</span>
+                    <span className="text-xs text-slate-400">Progres ke {getNextRank(user.xp || 0)}</span>
                     <span className="text-xs font-semibold text-emerald-400">{Math.round(getXPProgress(user.xp || 0))}%</span>
                   </div>
                   <div className="h-2 bg-slate-700/50 rounded-full overflow-hidden">
@@ -917,15 +930,15 @@ const Profile: React.FC = () => {
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1 text-slate-400">
                       <Zap size={12} className="text-yellow-400" />
-                      <span>Meal</span>
+                      <span>Makan</span>
                     </div>
                     <div className="flex items-center gap-1 text-slate-400">
                       <Zap size={12} className="text-orange-400" />
-                      <span>Workout</span>
+                      <span>Latihan</span>
                     </div>
                     <div className="flex items-center gap-1 text-slate-400">
                       <Zap size={12} className="text-blue-400" />
-                      <span>Progress</span>
+                      <span>Kemajuan</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
@@ -939,12 +952,12 @@ const Profile: React.FC = () => {
 
             {/* Account Settings */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Settings</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Pengaturan</h3>
               <div className="space-y-2">
                 <button className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50 rounded-xl transition-colors group">
                   <div className="flex items-center">
                     <Bell className="h-5 w-5 text-gray-400 mr-3 group-hover:text-gray-600" />
-                    <span className="text-gray-700 font-medium">Notifications</span>
+                    <span className="text-gray-700 font-medium">Notifikasi</span>
                   </div>
                   <ChevronRight className="h-4 w-4 text-gray-300" />
                 </button>
@@ -952,7 +965,7 @@ const Profile: React.FC = () => {
                 <button className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50 rounded-xl transition-colors group">
                   <div className="flex items-center">
                     <Shield className="h-5 w-5 text-gray-400 mr-3 group-hover:text-gray-600" />
-                    <span className="text-gray-700 font-medium">Privacy & Security</span>
+                    <span className="text-gray-700 font-medium">Privasi & Keamanan</span>
                   </div>
                   <ChevronRight className="h-4 w-4 text-gray-300" />
                 </button>
@@ -964,7 +977,7 @@ const Profile: React.FC = () => {
                   className="w-full flex items-center p-3 text-left hover:bg-red-50 rounded-xl transition-colors text-red-600 group"
                 >
                   <LogOut className="h-5 w-5 mr-3 group-hover:text-red-700" />
-                  <span className="font-medium group-hover:text-red-700">Sign Out</span>
+                  <span className="font-medium group-hover:text-red-700">Keluar Akun</span>
                 </button>
               </div>
             </div>
@@ -980,23 +993,23 @@ const Profile: React.FC = () => {
                 <div className="p-3 bg-red-50 rounded-full mr-4">
                   <LogOut className="h-6 w-6 text-red-600" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900">Sign Out?</h3>
+                <h3 className="text-xl font-bold text-gray-900">Keluar Akun?</h3>
               </div>
               <p className="text-gray-600 mb-8 leading-relaxed">
-                Are you sure you want to sign out? You'll need to log in again to access your dashboard.
+                Apakah kamu yakin ingin keluar? Kamu perlu masuk lagi untuk mengakses dashboard.
               </p>
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setShowLogoutConfirm(false)}
                   className="px-5 py-2.5 text-gray-700 hover:bg-gray-100 rounded-xl font-medium transition-colors"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   onClick={handleLogout}
                   className="px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 shadow-lg shadow-red-200 font-medium transition-colors"
                 >
-                  Sign Out
+                  Keluar Akun
                 </button>
               </div>
             </div>

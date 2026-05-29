@@ -118,18 +118,18 @@ const Onboarding: React.FC = () => {
 
     } catch (err: any) {
       console.error("Login Error:", err);
-      let friendlyMessage = "An unknown error occurred. Please try again.";
+      let friendlyMessage = "Terjadi kesalahan. Silakan coba lagi.";
       switch (err.code) {
         case "auth/user-not-found":
         case "auth/wrong-password":
         case "auth/invalid-credential":
-          friendlyMessage = "Invalid email or password. Please try again.";
+          friendlyMessage = "Email atau kata sandi tidak valid. Silakan coba lagi.";
           break;
         case "auth/too-many-requests":
-          friendlyMessage = "Too many sign-in attempts. Please try again later.";
+          friendlyMessage = "Terlalu banyak percobaan masuk. Silakan coba lagi nanti.";
           break;
         case "auth/network-request-failed":
-          friendlyMessage = "Network error. Please check your connection and try again.";
+          friendlyMessage = "Kesalahan jaringan. Periksa koneksi Anda dan coba lagi.";
           break;
       }
       setLoginError(friendlyMessage);
@@ -189,11 +189,11 @@ const Onboarding: React.FC = () => {
 
     } catch (err: any) {
       console.error("Google Login Error:", err);
-      let friendlyMessage = "Google login failed. Please try again.";
+      let friendlyMessage = "Login dengan Google gagal. Silakan coba lagi.";
       if (err.code === "auth/popup-closed-by-user") {
-        friendlyMessage = "Login popup was closed. Please try again.";
+        friendlyMessage = "Popup login ditutup. Silakan coba lagi.";
       } else if (err.code === "auth/network-request-failed") {
-        friendlyMessage = "Network error. Please check your connection and try again.";
+        friendlyMessage = "Kesalahan jaringan. Periksa koneksi Anda dan coba lagi.";
       }
       setLoginError(friendlyMessage);
     } finally {
@@ -204,11 +204,11 @@ const Onboarding: React.FC = () => {
   // ==== REGISTER ====
   const handleRegister = async () => {
     if (!formData.name.trim()) {
-      setLoginError("Full Name is required for registration.");
+      setLoginError("Nama lengkap diperlukan untuk pendaftaran.");
       return;
     }
     if (!loginEmail.trim()) {
-      setLoginError("Email is required for registration.");
+      setLoginError("Email diperlukan untuk pendaftaran.");
       return;
     }
     setIsLoading(true);
@@ -220,15 +220,15 @@ const Onboarding: React.FC = () => {
       // After successful registration, move user to the next step
       setCurrentStep(2);
       setIsRegister(false); // Switch back to login mode conceptually
-      setLoginError("Registration successful! Please continue to set up your profile.");
+      setLoginError("Pendaftaran berhasil! Silakan lanjutkan untuk menyelesaikan profil Anda.");
       
     } catch (err: any) {
       console.error("Register Error:", err);
-      let friendlyMessage = "Registration failed. Please try again.";
+      let friendlyMessage = "Pendaftaran gagal. Silakan coba lagi.";
       if (err.code === 'auth/email-already-in-use') {
-        friendlyMessage = "This email is already registered. Please log in instead.";
+        friendlyMessage = "Email ini sudah terdaftar. Silakan masuk.";
       } else if (err.code === 'auth/weak-password') {
-        friendlyMessage = "The password is too weak. Please use at least 6 characters.";
+        friendlyMessage = "Kata sandi terlalu lemah. Gunakan minimal 6 karakter.";
       }
       setLoginError(friendlyMessage);
     } finally {
@@ -240,7 +240,7 @@ const Onboarding: React.FC = () => {
   const handleComplete = async () => {
     const user = auth.currentUser;
     if (!user) {
-      setLoginError("You are not logged in. Please go back to the login step.");
+      setLoginError("Anda belum masuk. Silakan kembali ke langkah login.");
       setCurrentStep(1);
       return;
     }
@@ -303,7 +303,7 @@ const Onboarding: React.FC = () => {
 
     } catch (err: any) {
       console.error("HandleComplete Error:", err);
-      setLoginError("Failed to save profile data. Please try again.");
+      setLoginError("Gagal menyimpan data profil. Silakan coba lagi.");
     } finally {
       setIsLoading(false);
     }
@@ -392,12 +392,12 @@ const Onboarding: React.FC = () => {
               <div className="text-center mb-8">
                 <LogIn className="h-12 w-12 text-green-600 mx-auto mb-4" />
                 <h2 className="text-3xl font-bold">
-                  {isRegister ? "Create Account" : "Welcome Back"}
+                  {isRegister ? "Buat Akun" : "Selamat Datang Kembali"}
                 </h2>
                 <p className="text-gray-600">
                   {isRegister
-                    ? "Register to get started"
-                    : "Login to your account"}
+                    ? "Daftar untuk memulai"
+                    : "Masuk ke akun Anda"}
                 </p>
               </div>
 
@@ -405,7 +405,7 @@ const Onboarding: React.FC = () => {
               <div className="space-y-4">
                 {isRegister && (
                   <div>
-                    <label className="block font-medium mb-1">Full Name</label>
+                    <label className="block font-medium mb-1">Nama Lengkap</label>
                     <input
                       type="text"
                       value={formData.name}
@@ -413,7 +413,7 @@ const Onboarding: React.FC = () => {
                         setFormData({ ...formData, name: e.target.value })
                       }
                       className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
-                      placeholder="Enter your full name"
+                      placeholder="Masukkan nama lengkap Anda"
                     />
                   </div>
                 )}
@@ -425,18 +425,18 @@ const Onboarding: React.FC = () => {
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
-                    placeholder="Enter your email"
+                    placeholder="Masukkan email Anda"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-medium mb-1">Password</label>
+                  <label className="block font-medium mb-1">Kata Sandi</label>
                   <input
                     type="password"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-400"
-                    placeholder="Enter your password"
+                    placeholder="Masukkan kata sandi Anda"
                   />
                 </div>
 
@@ -454,14 +454,14 @@ const Onboarding: React.FC = () => {
                   className="w-full px-8 py-3 bg-gradient-to-r from-green-600 to-blue-600 rounded-lg text-white font-semibold disabled:opacity-50 hover:shadow-lg transition"
                 >
                   {isLoading 
-                    ? "Processing..." 
-                    : (isRegister ? "Register" : "Login")}
+                    ? "Memproses..." 
+                    : (isRegister ? "Daftar" : "Masuk")}
                 </button>
 
                 {/* Divider */}
                 <div className="flex items-center gap-4 my-6">
                   <div className="flex-1 h-px bg-gray-200"></div>
-                  <span className="text-sm text-gray-400">or</span>
+                  <span className="text-sm text-gray-400">atau</span>
                   <div className="flex-1 h-px bg-gray-200"></div>
                 </div>
 
@@ -472,13 +472,13 @@ const Onboarding: React.FC = () => {
                   className="w-full flex items-center justify-center gap-3 px-8 py-3 border-2 border-gray-200 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition disabled:opacity-50"
                 >
                   <FaGoogle className="w-5 h-5" />
-                  Continue with Google
+                  Lanjutkan dengan Google
                 </button>
 
                 <p className="text-center text-sm mt-4">
                   {isRegister ? (
                     <>
-                      Already have an account?{" "}
+                      Sudah punya akun?{" "}
                       <span
                         className="text-green-600 cursor-pointer font-semibold hover:underline"
                         onClick={() => {
@@ -488,12 +488,12 @@ const Onboarding: React.FC = () => {
                           setLoginPassword("");
                         }}
                       >
-                        Login
+                        Masuk
                       </span>
                     </>
                   ) : (
                     <>
-                      Don't have an account?{" "}
+                      Belum punya akun?{" "}
                       <span
                         className="text-green-600 cursor-pointer font-semibold hover:underline"
                         onClick={() => {
@@ -501,7 +501,7 @@ const Onboarding: React.FC = () => {
                           setLoginError("");
                         }}
                       >
-                        Register
+                        Daftar
                       </span>
                     </>
                   )}
@@ -515,13 +515,13 @@ const Onboarding: React.FC = () => {
             <div className="space-y-6">
               <div className="text-center mb-8">
                 <UserIcon className="h-12 w-12 text-green-600 mx-auto mb-4" />
-                <h2 className="text-3xl font-bold">Profile Setup</h2>
+                <h2 className="text-3xl font-bold">Pengaturan Profil</h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block font-medium">Full Name</label>
+                    <label className="block font-medium">Nama Lengkap</label>
                     <input
                       type="text"
                       value={formData.name}
@@ -553,16 +553,16 @@ const Onboarding: React.FC = () => {
                       }
                       className="w-full px-4 py-3 border rounded-lg"
                     >
-                      <option value="">Select gender</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
+                      <option value="">Pilih jenis kelamin</option>
+                      <option value="male">Pria</option>
+                      <option value="female">Wanita</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block font-medium">Height (cm)</label>
+                    <label className="block font-medium">Tinggi (cm)</label>
                     <input
                       type="number"
                       value={formData.height}
@@ -574,7 +574,7 @@ const Onboarding: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block font-medium">Weight (kg)</label>
+                    <label className="block font-medium">Berat (kg)</label>
                     <input
                       type="number"
                       value={formData.weight}
@@ -590,7 +590,7 @@ const Onboarding: React.FC = () => {
               {formData.height && formData.weight && (
                 <div className="p-4 bg-green-50 rounded-lg text-center">
                   <h3 className="font-semibold text-green-800">
-                    Your BMI Preview
+                    Pratinjau BMI Anda
                   </h3>
                   <p className="text-green-700 text-lg font-bold">
                     {calculateBMI(
@@ -608,11 +608,11 @@ const Onboarding: React.FC = () => {
             <div className="space-y-6">
               <div className="text-center mb-8">
                 <Target className="h-12 w-12 text-green-600 mx-auto mb-4" />
-                <h2 className="text-3xl font-bold">Goals & Activity</h2>
+                <h2 className="text-3xl font-bold">Tujuan & Aktivitas</h2>
               </div>
 
               {/* Activity Level */}
-              <label className="block font-medium mb-2">Activity Level</label>
+                  <label className="block font-medium mb-2">Level Aktivitas</label>
               <div className="space-y-3">
                 {ACTIVITY_LEVELS.map((level) => (
                   <label
@@ -647,18 +647,18 @@ const Onboarding: React.FC = () => {
                 {[
                   {
                     value: "weight-loss",
-                    label: "Weight Loss",
-                    desc: "Lose weight healthily",
+                    label: "Penurunan Berat Badan",
+                    desc: "Turunkan berat badan dengan sehat",
                   },
                   {
                     value: "weight-gain",
-                    label: "Weight Gain",
-                    desc: "Gain weight safely",
+                    label: "Penambahan Berat Badan",
+                    desc: "Tambah berat badan dengan aman",
                   },
                   {
                     value: "muscle-gain",
-                    label: "Muscle Gain",
-                    desc: "Build lean muscle",
+                    label: "Penambahan Otot",
+                    desc: "Bangun otot tanpa lemak",
                   },
                 ].map((goal) => (
                   <label
@@ -691,12 +691,11 @@ const Onboarding: React.FC = () => {
           {currentStep === 4 && (
             <div className="space-y-6">
               <h2 className="text-center text-3xl font-bold mb-8">
-                Dietary Preferences
-              </h2>
+                Preferensi Diet
 
               {/* Dietary Restrictions */}
               <label className="block font-medium mb-3">
-                Dietary Restrictions
+                Pembatasan Diet
               </label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {DIETARY_RESTRICTIONS.map((item) => (
@@ -717,7 +716,7 @@ const Onboarding: React.FC = () => {
               </div>
 
               {/* Allergies */}
-              <label className="block font-medium mb-3">Allergies</label>
+              <label className="block font-medium mb-3">Alergi</label>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 {COMMON_ALLERGIES.map((item) => (
                   <label
@@ -746,7 +745,7 @@ const Onboarding: React.FC = () => {
                 className="flex items-center px-6 py-3 text-gray-600 hover:text-gray-800"
               >
                 <ChevronLeft className="h-5 w-5 mr-1" />
-                Previous
+                Sebelumnya
               </button>
 
               <button
@@ -754,7 +753,7 @@ const Onboarding: React.FC = () => {
                 disabled={!isStepValid() || isLoading}
                 className="flex items-center px-8 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white font-semibold rounded-lg shadow-lg disabled:opacity-50"
               >
-                {isLoading ? "Saving..." : (currentStep === totalSteps ? "Complete Setup" : "Next")}
+                {isLoading ? "Menyimpan..." : (currentStep === totalSteps ? "Selesaikan Pengaturan" : "Selanjutnya")}
                 <ChevronRight className="h-5 w-5 ml-1" />
               </button>
             </div>

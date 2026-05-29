@@ -287,16 +287,16 @@ const AIWorkoutPlan: React.FC = () => {
                 <div className="bg-blue-600 p-2.5 rounded-2xl text-white shadow-xl shadow-blue-200">
                   <Dumbbell className="w-6 h-6" />
                 </div>
-                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Workout Plan</h1>
+                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Rencana Latihan</h1>
               </div>
-              <p className="text-gray-500 mt-2 text-sm font-medium ml-1">Personalized for your goals & body type</p>
+              <p className="text-gray-500 mt-2 text-sm font-medium ml-1">Dipersonalisasi untuk tujuan & tipe tubuhmu</p>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 items-center">
               {/* Lokasi Selector */}
               <div className="flex bg-white p-1.5 rounded-2xl border border-gray-200 shadow-sm w-full sm:w-auto">
                 <button onClick={() => handleLocationChange('home')} className={`flex items-center px-4 py-2 rounded-lg text-xs font-bold transition-all ${workoutLocation === 'home' ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
-                  <Home size={14} className="mr-1.5" /> Home
+                  <Home size={14} className="mr-1.5" /> Di Rumah
                 </button>
                 <button onClick={() => handleLocationChange('gym')} className={`flex items-center px-4 py-2 rounded-lg text-xs font-bold transition-all ${workoutLocation === 'gym' ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
                   <Building2 size={14} className="mr-1.5" /> Gym
@@ -305,7 +305,7 @@ const AIWorkoutPlan: React.FC = () => {
 
               {/* Split Selector */}
               <div className="flex bg-white p-1.5 rounded-2xl border border-gray-200 shadow-sm w-full sm:w-auto overflow-x-auto no-scrollbar">
-                {['Push', 'Pull', 'Legs', 'Full Body'].map((split) => (
+                {['Dorong', 'Tarik', 'Kaki', 'Seluruh Tubuh'].map((split) => (
                   <button 
                     key={split} 
                     onClick={() => setSelectedSplit(split)} 
@@ -325,7 +325,7 @@ const AIWorkoutPlan: React.FC = () => {
           <div className="w-full lg:w-auto">
             <button onClick={handleGeneratePlan} disabled={isGeneratingAI} className="w-full flex items-center justify-center px-8 py-4 rounded-2xl bg-gray-900 text-white font-bold shadow-xl hover:bg-gray-800 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
               {isGeneratingAI ? <Loader className="w-5 h-5 mr-2 animate-spin" /> : <RefreshCw className="w-5 h-5 mr-2" />}
-              {isGeneratingAI ? "Generating..." : "Generate Plan"}
+              {isGeneratingAI ? "Sedang Membuat..." : "Buat Rencana"}
             </button>
           </div>
         </div>
@@ -334,7 +334,7 @@ const AIWorkoutPlan: React.FC = () => {
 
         {/* --- MAIN CONTENT --- */}
         {isGeneratingAI ? (
-            <div className="text-center py-20"><div className="relative w-20 h-20 mx-auto mb-6"><div className="absolute inset-0 border-4 border-gray-100 rounded-full"></div><div className="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div><Dumbbell className="absolute inset-0 m-auto text-blue-500 w-8 h-8 animate-pulse" /></div><h3 className="text-xl font-bold text-gray-900">Crafting your workout...</h3><p className="text-gray-500 mt-2">Analyzing your profile and goals</p></div>
+            <div className="text-center py-20"><div className="relative w-20 h-20 mx-auto mb-6"><div className="absolute inset-0 border-4 border-gray-100 rounded-full"></div><div className="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div><Dumbbell className="absolute inset-0 m-auto text-blue-500 w-8 h-8 animate-pulse" /></div><h3 className="text-xl font-bold text-gray-900">Menyusun latihanmu...</h3><p className="text-gray-500 mt-2">Menganalisis profil dan tujuanmu</p></div>
         ) : workoutPlan ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-8">
@@ -373,7 +373,7 @@ const AIWorkoutPlan: React.FC = () => {
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                 <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2"><Zap className="w-5 h-5 text-yellow-500 fill-yellow-500" />Calories Burned</h3>
                 <div className="flex flex-col items-center justify-center mb-8 relative"><div className="relative h-40 w-40"><svg className="h-full w-full -rotate-90" viewBox="0 0 36 36"><path className="text-gray-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" /><path className={`${progress === 100 ? "text-green-500" : "text-blue-500"} transition-all duration-1000 ease-out`} strokeDasharray={`${progress}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg><div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-4xl font-bold text-gray-900">{burnedCalories}</span><span className="text-xs text-gray-400 font-medium uppercase tracking-wide">kcal</span></div></div></div>
-                <div className="space-y-4"><div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl"><span className="text-sm text-gray-500 font-medium">Goal</span><span className="text-sm font-bold text-gray-900">{totalCalories} kcal</span></div><div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl"><span className="text-sm text-gray-500 font-medium">Remaining</span><span className="text-sm font-bold text-gray-900">{Math.max(0, totalCalories - burnedCalories)} kcal</span></div></div>
+                <div className="space-y-4"><div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl"><span className="text-sm text-gray-500 font-medium">Target</span><span className="text-sm font-bold text-gray-900">{totalCalories} kcal</span></div><div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl"><span className="text-sm text-gray-500 font-medium">Tersisa</span><span className="text-sm font-bold text-gray-900">{Math.max(0, totalCalories - burnedCalories)} kcal</span></div></div>
               </div>
               {/* Quick Add */}
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
@@ -381,7 +381,7 @@ const AIWorkoutPlan: React.FC = () => {
                 <div className="space-y-4">
                   <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Exercise Name</label><input type="text" placeholder="e.g. Push Up" value={exerciseInput} onChange={(e) => setExerciseInput(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm font-medium"/></div>
                   <div><label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Total Reps</label><input type="number" placeholder="e.g. 20" value={repsInput} onChange={(e) => setRepsInput(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm font-medium"/></div>
-                  {exerciseInput && repsInput && (<div className="p-3 bg-blue-50 rounded-xl border border-blue-100 flex justify-between items-center"><span className="text-xs text-blue-600 font-medium">Est. Burn:</span><span className="text-sm font-bold text-blue-700">{Math.round(getCaloriesPerRep(exerciseInput) * parseInt(repsInput) * (user.weight / 70))}{" "}kcal</span></div>)}
+                  {exerciseInput && repsInput && (<div className="p-3 bg-blue-50 rounded-xl border border-blue-100 flex justify-between items-center"><span className="text-xs text-blue-600 font-medium">Perk. Kalori:</span><span className="text-sm font-bold text-blue-700">{Math.round(getCaloriesPerRep(exerciseInput) * parseInt(repsInput) * (user.weight / 70))}{" "}kcal</span></div>)}
                   <button onClick={() => handleAddExercise(exerciseInput, parseInt(repsInput) || 0)} disabled={!exerciseInput.trim() || !repsInput} className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"><Plus className="w-4 h-4" /> Add Log</button>
                 </div>
               </div>

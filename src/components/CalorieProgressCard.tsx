@@ -93,7 +93,7 @@ const CalorieProgressCard: React.FC<CalorieProgressCardProps> = ({ eaten, burned
               <CountUp value={remaining} />
             </span>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-              Left
+              Tersisa kcal
             </span>
           </div>
         </div>
@@ -105,7 +105,7 @@ const CalorieProgressCard: React.FC<CalorieProgressCardProps> = ({ eaten, burned
               <div className="p-2 bg-emerald-500/10 rounded-xl">
                 <Target size={20} className="text-emerald-400" />
               </div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Daily Energy</h2>
+              <h2 className="text-xl font-bold text-white tracking-tight">Energi Harian</h2>
             </div>
             <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full uppercase tracking-wider">
               On Track
@@ -119,7 +119,7 @@ const CalorieProgressCard: React.FC<CalorieProgressCardProps> = ({ eaten, burned
                 <Utensils size={20} className="text-orange-400" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Food Eaten</p>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Terkonsumsi</p>
                 <p className="text-xl font-bold text-white"><CountUp value={eaten} /> <span className="text-xs font-medium text-slate-400">kcal</span></p>
               </div>
             </div>
@@ -130,7 +130,7 @@ const CalorieProgressCard: React.FC<CalorieProgressCardProps> = ({ eaten, burned
                 <Flame size={20} className="text-blue-400" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Exercise</p>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Terbakar</p>
                 <p className="text-xl font-bold text-white"><CountUp value={burned} /> <span className="text-xs font-medium text-slate-400">kcal</span></p>
               </div>
             </div>
