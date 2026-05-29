@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Plus, ChevronLeft, ChevronRight, Check, Sparkles, Loader, RefreshCw, X, Trash2 } from 'lucide-react';
 import { useNutrition } from '../context/NutritionContext';
-import AISearch from './FoodSearch';
+import AISearch, { type FoodDetail } from './FoodSearch';
 
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
@@ -31,6 +31,13 @@ interface Food {
   protein: number;
   carbs: number;
   fat: number;
+  saturatedFat?: number;
+  monounsaturatedFat?: number;
+  polyunsaturatedFat?: number;
+  sugars?: number;
+  dietaryFiber?: number;
+  cholesterol?: number;
+  sodium?: number;
   servingSize: string;
 }
 
@@ -41,6 +48,13 @@ interface AIMeal {
   protein: number;
   carbs: number;
   fat: number;
+  saturatedFat?: number;
+  monounsaturatedFat?: number;
+  polyunsaturatedFat?: number;
+  sugars?: number;
+  dietaryFiber?: number;
+  cholesterol?: number;
+  sodium?: number;
   time: string;
   reasoning: string;
   portions: string;
@@ -90,6 +104,13 @@ const normalizeAIMealPlan = (plan: any): AIMealPlan | null => {
           protein: Number(m.protein ?? m.proteins ?? 0),
           carbs: Number(m.carbs ?? m.karbohidrat ?? m.carbohydrate ?? 0),
           fat: Number(m.fat ?? m.lemak ?? 0),
+          saturatedFat: Number(m.saturatedFat ?? m['Saturated Fats'] ?? 0),
+          monounsaturatedFat: Number(m.monounsaturatedFat ?? m['Monounsaturated Fats'] ?? 0),
+          polyunsaturatedFat: Number(m.polyunsaturatedFat ?? m['Polyunsaturated Fats'] ?? 0),
+          sugars: Number(m.sugars ?? m.Sugars ?? 0),
+          dietaryFiber: Number(m.dietaryFiber ?? m['Dietary Fiber'] ?? 0),
+          cholesterol: Number(m.cholesterol ?? m.Cholesterol ?? 0),
+          sodium: Number(m.sodium ?? m.Sodium ?? 0),
           time: m.time ?? '',
           reasoning: m.reasoning ?? '',
           portions: m.portions ?? ''
@@ -151,12 +172,13 @@ const MealPlanning: React.FC = () => {
       });
     }
 
-    let total = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    let total = { calories: 0, protein: 0, carbs: 0, fat: 0, sugars: 0 };
     allFoods.filter(f => f.consumed).forEach(f => {
         total.calories += f.calories || 0;
         total.protein += f.protein || 0;
         total.carbs += f.carbs || 0;
         total.fat += f.fat || 0;
+        total.sugars += f.sugars || 0;
     });
 
     const payload = {
@@ -166,6 +188,7 @@ const MealPlanning: React.FC = () => {
         protein: total.protein,
         carbs: total.carbs,
         fat: total.fat,
+        sugars: total.sugars,
         totalCalories: total.calories,
         date: dateKey,
         nutritionTips: updatedAiPlan?.nutritionTips || '',
@@ -183,7 +206,7 @@ const MealPlanning: React.FC = () => {
 
   // --- MEMOIZED VALUES ---
   const consumedNutrition = useMemo(() => {
-    let total = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    let total = { calories: 0, protein: 0, carbs: 0, fat: 0, sugars: 0 };
     if (!user) return total;
 
     MEAL_TYPES.forEach(type => {
@@ -193,6 +216,7 @@ const MealPlanning: React.FC = () => {
                 total.protein += meal.protein || 0;
                 total.carbs += meal.carbs || 0;
                 total.fat += meal.fat || 0;
+                total.sugars += meal.sugars || 0;
             }
         });
         customMealPlan[type]?.forEach(food => {
@@ -201,6 +225,7 @@ const MealPlanning: React.FC = () => {
                 total.protein += food.protein || 0;
                 total.carbs += food.carbs || 0;
                 total.fat += food.fat || 0;
+                total.sugars += food.sugars || 0;
             }
         });
     });
@@ -229,7 +254,7 @@ const MealPlanning: React.FC = () => {
     await saveMealDataToFirestore(customMealPlan, aiMealPlan, newConsumed);
   }, [currentDate, consumedFoods, customMealPlan, aiMealPlan, saveMealDataToFirestore]);
 
-  const addFoodToMeal = useCallback(async (food: Food) => {
+  const addFoodToMeal = useCallback(async (food: FoodDetail) => {
     const newCustomMealPlan = { 
       ...customMealPlan, 
       [selectedMeal]: [...customMealPlan[selectedMeal], { ...food, id: `f-${Date.now()}` }] 
@@ -390,7 +415,13 @@ const MealPlanning: React.FC = () => {
 
     try {
       const targetDaily = calculateTDEE(user);
-      const targetPerMeal = Math.round(targetDaily / 3.5);
+      const mealTargetRatios: Record<MealTimeCategory, number> = {
+        Sarapan: 0.25,
+        MakanSiang: 0.35,
+        MakanMalam: 0.30,
+        snacks: 0.10
+      };
+      const getMealTarget = (mealType: MealTimeCategory) => Math.max(40, Math.round(targetDaily * mealTargetRatios[mealType]));
 
       const shuffle = <T,>(items: T[]): T[] => {
         const array = [...items];
@@ -417,8 +448,8 @@ const MealPlanning: React.FC = () => {
       };
 
       const makeItems = (baseCalories: number, mealType: MealTimeCategory) => {
-        const randomCalories = randomRange(baseCalories, 0.7, 1.3);
-        const topK = getFoodRecommendationsKNN(randomCalories, user.goal, mealType, 20, 3);
+        const randomCalories = randomRange(baseCalories, 0.7, 1.0);
+        const topK = getFoodRecommendationsKNN(randomCalories, user.goal, mealType, 20, 3, user.allergies ?? [], false);
         const [item] = shuffle(topK).slice(0, 1);
         const finalCalories = item?.calories ?? randomCalories;
 
@@ -435,10 +466,10 @@ const MealPlanning: React.FC = () => {
         }];
       };
 
-      const breakfast = makeItems(targetPerMeal, 'Sarapan');
-      const lunch = makeItems(targetPerMeal, 'MakanSiang');
-      const dinner = makeItems(Math.round(targetPerMeal * (0.8 + Math.random() * 0.3)), 'MakanMalam');
-      const snacks = makeItems(Math.round(targetPerMeal * (0.4 + Math.random() * 0.3)), 'snacks');
+      const breakfast = makeItems(getMealTarget('Sarapan'), 'Sarapan');
+      const lunch = makeItems(getMealTarget('MakanSiang'), 'MakanSiang');
+      const dinner = makeItems(getMealTarget('MakanMalam'), 'MakanMalam');
+      const snacks = makeItems(getMealTarget('snacks'), 'snacks');
       const totalCalories = breakfast[0].calories + lunch[0].calories + dinner[0].calories + snacks[0].calories;
 
       const recommendations = {
@@ -447,7 +478,7 @@ const MealPlanning: React.FC = () => {
         MakanMalam: dinner,
         snacks: snacks,
         totalCalories,
-        nutritionTips: `Menu hari ini dibuat secara acak. Total kalori sekitar ${totalCalories} kcal.`,
+        nutritionTips: `Menu hari ini dibuat secara acak dan dipilih untuk berada di bawah target agar Anda bisa menambah makanan jika perlu. Total kalori sekitar ${totalCalories} kcal.`,
         hydrationGoal: "8 Gelas (2.5L)"
       };
 
@@ -531,8 +562,8 @@ const MealPlanning: React.FC = () => {
                 <h3 className="text-sm font-bold text-gray-700 mb-4 uppercase">Rincian Makronutrisi</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div><div className="flex justify-between mb-2"><span className="text-sm font-medium text-gray-700">Protein</span><span className="text-sm font-bold text-orange-600">{consumedNutrition.protein.toFixed(1)}g</span></div><div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-orange-500" style={{ width: `${Math.min(100, (consumedNutrition.protein / (user.weight * 1.5)) * 100)}%` }} /></div></div>
-                    <div><div className="flex justify-between mb-2"><span className="text-sm font-medium text-gray-700">Karbohidrat</span><span className="text-sm font-bold text-blue-600">{consumedNutrition.carbs.toFixed(1)}g</span></div><div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-blue-500" style={{ width: `${Math.min(100, (consumedNutrition.carbs / (user.dailyCalories * 0.5 / 4)) * 100)}%` }} /></div></div>
-                    <div><div className="flex justify-between mb-2"><span className="text-sm font-medium text-gray-700">Lemak</span><span className="text-sm font-bold text-amber-600">{consumedNutrition.fat.toFixed(1)}g</span></div><div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-amber-500" style={{ width: `${Math.min(100, (consumedNutrition.fat / (user.dailyCalories * 0.25 / 9)) * 100)}%` }} /></div></div>
+                    <div><div className="flex justify-between mb-2"><span className="text-sm font-medium text-gray-700">Kalori</span><span className="text-sm font-bold text-blue-600">{consumedNutrition.calories.toFixed(1)} kcal</span></div><div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-blue-500" style={{ width: `${Math.min(100, (consumedNutrition.calories / user.dailyCalories) * 100)}%` }} /></div></div>
+                    <div><div className="flex justify-between mb-2"><span className="text-sm font-medium text-gray-700">Gula</span><span className="text-sm font-bold text-pink-600">{consumedNutrition.sugars.toFixed(1)}g</span></div><div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-pink-500" style={{ width: `${Math.min(100, (consumedNutrition.sugars / Math.max(1, user.dailyCalories * 0.06 / 4)) * 100)}%` }} /></div></div>
                 </div>
             </div>
         </div>
@@ -564,9 +595,15 @@ const MealPlanning: React.FC = () => {
                                <div className="flex justify-between items-start mb-3"><span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${isAi ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}>{isAi ? `Rekomendasi` : 'Manual'}</span>{!isAi && (<button onClick={() => removeFoodFromMeal(meal.id, type)} className="text-gray-300 hover:text-red-500"><Trash2 size={14} /></button>)}</div>
                                <div className="mb-4 flex-1"><h4 className={`font-bold text-gray-900 text-lg leading-tight mb-1 h-10 line-clamp-2 ${isDone ? 'line-through text-gray-400' : ''}`}>{meal.menu || meal.name}</h4><div className="flex items-center gap-2 text-xs text-gray-500"><span className="flex items-center gap-1"><Sparkles size={10} className="text-yellow-500"/> {meal.calories} kcal</span><span>•</span><span>{meal.time || 'Anytime'}</span></div><p className="text-xs text-gray-400 mt-2 line-clamp-2 h-8">{meal.portions || meal.servingSize || "1 Porsi"}</p></div>
                                <div className="grid grid-cols-3 gap-2 mb-4">
-                                  <div className="bg-gray-50 rounded-xl p-2 text-center"><span className="block text-[10px] text-gray-400 font-bold uppercase">Prot</span><span className="block text-xs font-bold text-gray-700">{meal.protein || 0}g</span></div>
-                                  <div className="bg-gray-50 rounded-xl p-2 text-center"><span className="block text-[10px] text-gray-400 font-bold uppercase">Carb</span><span className="block text-xs font-bold text-gray-700">{meal.carbs || 0}g</span></div>
-                                  <div className="bg-gray-50 rounded-xl p-2 text-center"><span className="block text-[10px] text-gray-400 font-bold uppercase">Fat</span><span className="block text-xs font-bold text-gray-700">{meal.fat || 0}g</span></div>
+                                  <div className="bg-blue-50 rounded-xl p-2 text-center"><span className="block text-[10px] text-gray-400 font-bold uppercase">Protein</span><span className="block text-xs font-bold text-gray-700">{meal.protein || 0}g</span></div>
+                                  <div className="bg-gray-50 rounded-xl p-2 text-center"><span className="block text-[10px] text-gray-400 font-bold uppercase">Kalori</span><span className="block text-xs font-bold text-gray-700">{meal.calories || 0} kcal</span></div>
+                                  <div className="bg-pink-50 rounded-xl p-2 text-center"><span className="block text-[10px] text-gray-400 font-bold uppercase">Gula</span><span className="block text-xs font-bold text-gray-700">{meal.sugars !== undefined ? meal.sugars : meal.carbs || 0}g</span></div>
+                               </div>
+                               <div className="grid grid-cols-2 gap-2 mb-3 text-[10px] text-gray-500">
+                                  {meal.dietaryFiber !== undefined && <div className="bg-slate-50 rounded-xl p-2 text-center"><span className="block uppercase">Fiber</span><span className="block font-bold text-gray-700">{meal.dietaryFiber}g</span></div>}
+                                  {meal.sugars !== undefined && <div className="bg-slate-50 rounded-xl p-2 text-center"><span className="block uppercase">Gula</span><span className="block font-bold text-gray-700">{meal.sugars}g</span></div>}
+                                  {meal.sodium !== undefined && <div className="bg-slate-50 rounded-xl p-2 text-center"><span className="block uppercase">Na</span><span className="block font-bold text-gray-700">{meal.sodium}g</span></div>}
+                                  {meal.saturatedFat !== undefined && <div className="bg-slate-50 rounded-xl p-2 text-center"><span className="block uppercase">Sat Fat</span><span className="block font-bold text-gray-700">{meal.saturatedFat}g</span></div>}
                                </div>
                                <button onClick={() => meal.id && toggleFoodConsumed(meal.id, type)} className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all h-10 whitespace-nowrap mt-auto ${isDone ? 'bg-green-500 text-white shadow-green-200 shadow-lg' : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-200'}`}>{isDone ? <><Check size={14} /> Selesai</> : 'Tandai Selesai'}</button>
                             </div>
@@ -594,6 +631,7 @@ const MealPlanning: React.FC = () => {
               </div>
               <div className="p-4 overflow-y-auto">
                 <AISearch 
+                  allergies={user.allergies ?? []}
                   onSelectFood={(food) => { 
                     addFoodToMeal(food); 
                     setShowFoodSelector(false); 

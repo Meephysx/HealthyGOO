@@ -36,6 +36,13 @@ export interface FoodItem {
   protein: number;
   carbs: number;
   fat: number;
+  saturatedFat?: number;
+  monounsaturatedFat?: number;
+  polyunsaturatedFat?: number;
+  sugars?: number;
+  dietaryFiber?: number;
+  cholesterol?: number;
+  sodium?: number;
   servingSize: string;
   mealType: MealType;
   source: 'ai' | 'manual';

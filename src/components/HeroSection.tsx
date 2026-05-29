@@ -1,8 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Flame, ChevronRight, Zap, Trophy } from 'lucide-react';
+import { useDailyLog } from '../context/DailyLogContext';
+import { useAuth } from '../context/AuthContext';
 
 const HeroSection: React.FC = () => {
+  const { userProfile } = useDailyLog();
+  const { currentUser } = useAuth();
+  const displayName = userProfile?.name || userProfile?.fullname || currentUser?.displayName || 'Aal';
+
   const containerVariants = {
     hidden: { opacity: 0, y: 30 },
     visible: {
@@ -10,7 +16,7 @@ const HeroSection: React.FC = () => {
       y: 0,
       transition: {
         duration: 0.8,
-        ease: [0.22, 1, 0.36, 1],
+        ease: 'easeInOut',
         staggerChildren: 0.15,
       },
     },
@@ -50,7 +56,7 @@ const HeroSection: React.FC = () => {
 
           <motion.div variants={itemVariants} className="space-y-2">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
-              Good Morning, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">Aal</span> 👋
+              Good Morning, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">{displayName}</span> 👋
             </h1>
             <p className="text-slate-400 text-lg md:text-xl font-medium max-w-md leading-relaxed">
               You're doing great! Ready to crush today's goals and reach new heights?

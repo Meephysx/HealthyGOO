@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Loader, Check, AlertCircle, ArrowRight, Plus, X, Coffee, Sun, Moon, Cookie } from 'lucide-react';
 import { saveUserLog, fetchUserLogByDate, getDateKey } from '../services/logger';
-import { FOOD_DATASET, FoodItem } from '../services/knnService';
+import { FOOD_DATASET, FoodItem, filterFoodItemsByAllergies } from '../services/knnService';
 
 export interface FoodDetail {
   name: string;
@@ -9,14 +9,22 @@ export interface FoodDetail {
   protein: number;
   carbs: number;
   fat: number;
+  saturatedFat?: number;
+  monounsaturatedFat?: number;
+  polyunsaturatedFat?: number;
+  sugars?: number;
+  dietaryFiber?: number;
+  cholesterol?: number;
+  sodium?: number;
   servingSize: string;
 }
 
 interface FoodSearchProps {
   onSelectFood?: (food: FoodDetail) => void;
+  allergies?: string[];
 }
 
-const AISearch: React.FC<FoodSearchProps> = ({ onSelectFood }) => {
+const AISearch: React.FC<FoodSearchProps> = ({ onSelectFood, allergies = [] }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FoodDetail[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,14 +47,21 @@ const AISearch: React.FC<FoodSearchProps> = ({ onSelectFood }) => {
       // Pencarian sekarang menggunakan data asli dari CSV yang sudah di-mapping
       const filtered = FOOD_DATASET.filter(item => 
         item.name.toLowerCase().includes(searchQuery.toLowerCase())
-      ).slice(0, 20); // Batasi hasil agar UI tetap ringan
+      );
 
-      if (filtered.length === 0) {
+      const allergySafe = filterFoodItemsByAllergies(filtered, allergies).slice(0, 20);
+
+      if (allergies.length > 0 && allergySafe.length === 0) {
+        setError("Hasil ditemukan, tetapi semua makanan tersebut tidak sesuai alergi Anda.");
+        return;
+      }
+
+      if (allergies.length === 0 && filtered.length === 0) {
         setError("Makanan tidak ditemukan dalam dataset lokal.");
         return;
       }
 
-      setSearchResults(filtered);
+      setSearchResults(allergies.length > 0 ? allergySafe : filtered.slice(0, 20));
 
     } catch (err: any) {
       console.error('[FoodSearch] search error', err);
@@ -175,10 +190,12 @@ const AISearch: React.FC<FoodSearchProps> = ({ onSelectFood }) => {
                 <p className="text-[11px] text-gray-400 mb-2">{food.servingSize}</p>
                 
                 {/* Makro Mini */}
-                <div className="flex gap-2 text-[10px] text-gray-500 font-medium">
-                  <span className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">P: {food.protein}g</span>
-                  <span className="bg-yellow-50 text-yellow-600 px-1.5 py-0.5 rounded">K: {food.carbs}g</span>
-                  <span className="bg-red-50 text-red-600 px-1.5 py-0.5 rounded">L: {food.fat}g</span>
+                <div className="flex flex-wrap gap-2 text-[10px] text-gray-500 font-medium">
+                  <span className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">Protein: {food.protein}g</span>
+                  <span className="bg-gray-50 text-gray-700 px-1.5 py-0.5 rounded">Kalori: {food.calories} kcal</span>
+                  <span className="bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded">Gula: {food.sugars !== undefined ? food.sugars : food.carbs}g</span>
+                  {food.dietaryFiber !== undefined && <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded">Fiber: {food.dietaryFiber}g</span>}
+                  {food.sodium !== undefined && <span className="bg-slate-50 text-slate-600 px-1.5 py-0.5 rounded">Na: {food.sodium}g</span>}
                 </div>
               </div>
               
